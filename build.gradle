@@ -1,0 +1,71 @@
+buildscript {
+    repositories {
+        maven { url = 'https://maven.neoforged.net/releases' }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    dependencies {
+        // idea-ext only adds IntelliJ run configs; excluded so the build works where its plugin host is unreachable.
+        classpath('net.neoforged:moddev-gradle:2.0.148') {
+            exclude group: 'gradle.plugin.org.jetbrains.gradle.plugin.idea-ext'
+        }
+    }
+}
+plugins {
+    id 'java-library'
+}
+apply plugin: 'net.neoforged.moddev'
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'GeckoLib'
+        url = 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/'
+        content { includeGroup 'software.bernie.geckolib' }
+    }
+}
+
+version = mod_version
+group = 'com.tygabeast.edelraids'
+base { archivesName = 'edelraids-1.21.1' }
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    version = project.neo_version
+    mods {
+        edelraids { sourceSet sourceSets.main }
+    }
+    runs {
+        server {
+            server()
+            programArgument '--nogui'
+        }
+    }
+}
+
+def geckolibLocal = file('libs/geckolib-neoforge-1.21.1-4.9.3-compile.jar')
+dependencies {
+    // GeckoLib is a required dependency at runtime and is never bundled in this jar.
+    if (geckolibLocal.exists()) {
+        compileOnly files(geckolibLocal)
+    } else {
+        compileOnly "software.bernie.geckolib:geckolib-neoforge-1.21.1:${geckolib_version}"
+    }
+}
+
+processResources {
+    def props = [mod_version: project.version]
+    inputs.properties props
+    filesMatching('META-INF/neoforge.mods.toml') { expand props }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.compilerArgs << '-parameters'
+}
+
+
+jar {
+    from('README.md')
+}

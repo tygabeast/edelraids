@@ -1,0 +1,35 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "All Rights Reserved"
+issueTrackerURL = ""
+
+[[mods]]
+modId = "edelraids"
+version = "${mod_version}"
+displayName = "Edel Raids: Pledged Blades"
+authors = "Tygabeast"
+description = '''
+Edel Raids are companions who React with their bonded Pledger to become a living weapon.
+A fan work inspired by the anime and manga Elemental Gelade by Mayumi Azuma; not affiliated with or endorsed by its rights holders.
+'''
+
+[[dependencies.edelraids]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1.200,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.edelraids]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.1,1.21.2)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.edelraids]]
+modId = "geckolib"
+type = "required"
+versionRange = "[4.7,)"
+ordering = "AFTER"
+side = "BOTH"

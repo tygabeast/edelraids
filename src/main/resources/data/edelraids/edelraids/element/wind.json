@@ -1,0 +1,7 @@
+{
+  "ring": 1,
+  "position": 1,
+  "color": "#4FC9A0",
+  "forms": ["edelraids:longsword"],
+  "on_hit": { "type": "edelraids:knockback", "strength": 0.5 }
+}
