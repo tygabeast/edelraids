@@ -153,12 +153,25 @@ def entity_animations():
             'right_arm': {'rotation': {'0.0': [-20, 0, 3], '0.5': [20, 0, 3], '1.0': [-20, 0, 3]}},
             'left_arm': {'rotation': {'0.0': [20, 0, -3], '0.5': [-20, 0, -3], '1.0': [20, 0, -3]}},
         }},
+        # In this rig a positive X rotation swings a hanging limb backward, so forward is negative.
         'animation.edel_raid.sit': {'loop': True, 'animation_length': 1.0, 'bones': {
             'root': {'position': [0, -10, 0]},
-            'right_leg': {'rotation': [85, 10, 0]},
-            'left_leg': {'rotation': [85, -10, 0]},
-            'right_arm': {'rotation': [30, 0, 5]},
-            'left_arm': {'rotation': [30, 0, -5]},
+            'right_leg': {'rotation': [-85, 10, 0]},
+            'left_leg': {'rotation': [-85, -10, 0]},
+            'right_arm': {'rotation': [-30, 0, 5]},
+            'left_arm': {'rotation': [-30, 0, -5]},
+        }},
+        'animation.edel_raid.wounded_idle': {'loop': True, 'animation_length': 3.0, 'bones': {
+            'body': {'rotation': {'0.0': [12, 0, 0], '1.5': [14, 0, 0], '3.0': [12, 0, 0]}},
+            'right_arm': {'rotation': [-15, 0, 8]},
+            'left_arm': {'rotation': [-35, 20, -10]},
+        }},
+        'animation.edel_raid.wounded_walk': {'loop': True, 'animation_length': 1.4, 'bones': {
+            'body': {'rotation': [12, 0, 0]},
+            'right_leg': {'rotation': {'0.0': [14, 0, 0], '0.7': [-14, 0, 0], '1.4': [14, 0, 0]}},
+            'left_leg': {'rotation': {'0.0': [-8, 0, 0], '0.7': [8, 0, 0], '1.4': [-8, 0, 0]}},
+            'right_arm': {'rotation': {'0.0': [-10, 0, 8], '0.7': [-20, 0, 8], '1.4': [-10, 0, 8]}},
+            'left_arm': {'rotation': [-35, 20, -10]},
         }},
         'animation.edel_raid.react': {'loop': 'hold_on_last_frame', 'animation_length': 1.0, 'bones': {
             'right_arm': {'rotation': {'0.0': [0, 0, 0], '0.4': [-160, 0, 10], '1.0': [-170, 0, 10]}},

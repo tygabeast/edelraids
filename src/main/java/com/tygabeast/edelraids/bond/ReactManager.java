@@ -71,7 +71,12 @@ public final class ReactManager {
 
         ItemStack previous = p.getMainHandItem();
         p.setItemInHand(InteractionHand.MAIN_HAND, weapon);
-        if (!previous.isEmpty() && !p.getInventory().add(previous)) p.drop(previous, false);
+        if (!previous.isEmpty()) {
+            // Not Inventory.add: in creative it deletes items that do not fit. hasRoomFor guaranteed a free slot.
+            int free = p.getInventory().getFreeSlot();
+            if (free >= 0) p.getInventory().setItem(free, previous);
+            else p.drop(previous, false);
+        }
 
         EdelWeaponItem.playFormAnimation(p, weapon, level);
         level.playSound(null, p, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1f, 1.4f);

@@ -52,6 +52,12 @@ gradle build              # jar in build/libs
 
 GeckoLib is a compile-only dependency resolved from its official Maven; it is never bundled.
 
+## 0.1.1 changes
+
+- Fixed: closing a container with her weapon inside, in creative with a full inventory, deleted her. She now reforms beside you.
+- Fixed: the sitting pose bent her legs backward; she now sits with legs forward.
+- Wounded Edel Raids now have their own slouched idle and limping walk instead of the sitting pose.
+
 ## 0.1.0 changes
 
 - First build: Phase 1 core slice. Edel Raid companion, bonding, stay/follow, release, React and reform,

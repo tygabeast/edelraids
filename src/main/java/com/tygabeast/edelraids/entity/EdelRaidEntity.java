@@ -74,6 +74,8 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
     private static final RawAnimation IDLE = RawAnimation.begin().thenLoop("animation.edel_raid.idle");
     private static final RawAnimation WALK = RawAnimation.begin().thenLoop("animation.edel_raid.walk");
     private static final RawAnimation SIT = RawAnimation.begin().thenLoop("animation.edel_raid.sit");
+    private static final RawAnimation WOUNDED_IDLE = RawAnimation.begin().thenLoop("animation.edel_raid.wounded_idle");
+    private static final RawAnimation WOUNDED_WALK = RawAnimation.begin().thenLoop("animation.edel_raid.wounded_walk");
     private static final RawAnimation REACT = RawAnimation.begin().thenPlayAndHold("animation.edel_raid.react");
     private static final RawAnimation REFORM = RawAnimation.begin().thenPlay("animation.edel_raid.reform");
 
@@ -441,7 +443,8 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
         controllers.add(new AnimationController<>(this, "main", 3, state -> {
             if (getTransformTicks() > 0) return state.setAndContinue(REACT);
             if (getReformTicks() > 0) return state.setAndContinue(REFORM);
-            if (isInSittingPose() || isWounded()) return state.setAndContinue(SIT);
+            if (isWounded()) return state.setAndContinue(state.isMoving() ? WOUNDED_WALK : WOUNDED_IDLE);
+            if (isInSittingPose()) return state.setAndContinue(SIT);
             return state.setAndContinue(state.isMoving() ? WALK : IDLE);
         }));
     }

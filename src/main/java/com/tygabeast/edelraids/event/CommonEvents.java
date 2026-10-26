@@ -128,7 +128,10 @@ public final class CommonEvents {
             if (!(s.getItem() instanceof EdelWeaponItem)) continue;
             ItemStack taken = s.copy();
             slot.set(ItemStack.EMPTY);
-            if (!inv.add(taken)) ReactManager.reformAt(p, taken, false);
+            // Never Inventory.add: in creative it reports success on a full inventory and deletes the item.
+            int free = inv.getFreeSlot();
+            if (free >= 0) inv.setItem(free, taken);
+            else ReactManager.reformAt(p, taken, false);
             returned = true;
         }
         if (returned) p.displayClientMessage(Component.translatable("message.edelraids.no_storage"), true);
