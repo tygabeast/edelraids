@@ -37,7 +37,8 @@ Rules:
 ## Resonance and songs
 
 - Each hit with her weapon form (or an arrow from her bow) adds 5 resonance, up to 100. After 10 seconds without a hit
-  it drains at 2 per second. The meter shows to the right of the hotbar while you hold her.
+  it drains at 2 per second. The meter shows to the right of the hotbar while you hold her; its position,
+  orientation, length and label can be changed in `edelraids-client.toml` or in-game under Mods > Edel Raids > Config.
 - Each element has three songs: one at bond 25 (costs 25), one at bond 50 (costs 50), and her full song when her
   weapon awakens (costs 100). Songs carry her element's effect and ring advantage, and need no cooldown beyond 1 second.
 - Song shapes: **Burst** (everything around you), **Wave** (a cone in front), **Dash** (you lunge forward and strike
@@ -97,7 +98,8 @@ Rules:
 Damage is at Third Class; Second and First Class add +1 and +2, awakening adds +1. With Better Combat installed,
 reach comes from its presets instead.
 
-Everything above is configurable in the server config `edelraids-server.toml`.
+Gameplay settings are in the server config `edelraids-server.toml`; the meter's layout is in the client config
+`edelraids-client.toml`. Both can be edited from the in-game config screen (the server file only in single player).
 
 ## Data packs
 
@@ -119,6 +121,13 @@ gradle build              # jar in build/libs
 ```
 
 GeckoLib is a compile-only dependency resolved from its official Maven; it is never bundled.
+
+## 0.3.1 changes
+
+- Wave songs reach further: 6.5 / 7.5 / 9.5 blocks (was 5 / 6 / 8).
+- New client config for the resonance meter: position (beside the hotbar, any corner, or the middle of either side),
+  horizontal or vertical, bar length, offsets, and toggles for the meter and the song name.
+- The mod now has an in-game config screen with named options.
 
 ## 0.3.0 changes
 

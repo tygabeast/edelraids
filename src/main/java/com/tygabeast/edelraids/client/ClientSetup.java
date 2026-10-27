@@ -9,6 +9,10 @@ import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.client.renderer.item.ItemPropertyFunction;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.client.gui.ConfigurationScreen;
+import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 
@@ -16,7 +20,10 @@ import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 public final class ClientSetup {
     private ClientSetup() {}
 
-    public static void init(IEventBus modBus) {
+    public static void init(IEventBus modBus, ModContainer container) {
+        container.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
+        // NeoForge's built-in screen (Mods list > Edel Raids > Config) edits both the client and server files.
+        container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
         modBus.addListener(ClientSetup::onRegisterRenderers);
         modBus.addListener(ClientSetup::onClientSetup);
         modBus.addListener(SongClient::registerKeys);

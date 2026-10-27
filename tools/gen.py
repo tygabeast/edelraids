@@ -461,7 +461,7 @@ SONGS = {
 # Per shape, per slot (bond 25, bond 50, full): power, size, duration. Costs are 25, 50, 100.
 SHAPE_STATS = {
     'burst': [(4.0, 3.5, 0), (6.0, 4.5, 0), (12.0, 6.0, 0)],
-    'wave': [(5.0, 5.0, 0), (7.0, 6.0, 0), (12.0, 8.0, 0)],
+    'wave': [(5.0, 6.5, 0), (7.0, 7.5, 0), (12.0, 9.5, 0)],
     'dash': [(5.0, 6.0, 0), (7.0, 8.0, 0), (12.0, 10.0, 0)],
     'ward': [(4.0, 3.0, 200), (6.0, 3.0, 300), (10.0, 4.0, 400)],
     'field': [(1.5, 3.0, 100), (2.0, 4.0, 140), (3.5, 6.0, 200)],
@@ -708,6 +708,32 @@ LANG = {
     'message.edelraids.learned_song': '%s learned %s!',
     'message.edelraids.recovered_lost': '%s was lost from your inventory and has reformed beside you.',
 }
+# Labels for NeoForge's config screen (tooltips fall back to the comments in the config classes).
+CONFIG_LANG = {
+    'title': 'Edel Raids Configuration',
+    'meter': 'Resonance Meter', 'showMeter': 'Show Meter', 'showSongName': 'Show Song Name',
+    'anchor': 'Position', 'orientation': 'Orientation', 'length': 'Bar Length',
+    'offsetX': 'Horizontal Offset', 'offsetY': 'Vertical Offset',
+    'anchor.hotbar_right': 'Right of Hotbar', 'anchor.hotbar_left': 'Left of Hotbar',
+    'anchor.top_left': 'Top Left', 'anchor.top_center': 'Top Centre', 'anchor.top_right': 'Top Right',
+    'anchor.middle_left': 'Middle Left', 'anchor.middle_right': 'Middle Right',
+    'anchor.bottom_left': 'Bottom Left', 'anchor.bottom_right': 'Bottom Right',
+    'orientation.horizontal': 'Horizontal', 'orientation.vertical': 'Vertical',
+    'reacting': 'Reacting', 'transformTicks': 'Transform Time (ticks)', 'reactRange': 'React Range',
+    'wearPerHit': 'Wear per Hit',
+    'companion': 'Companion', 'woundedTicks': 'Wounded Time (ticks)', 'regenIntervalTicks': 'Healing Interval (ticks)',
+    'bond': 'Bond', 'bondPerKill': 'Bond per Kill', 'awakenBond': 'Awakening Bond',
+    'awakenDamageBonus': 'Awakened Damage Bonus', 'bondCompanionTicks': 'Companionship Interval (ticks)',
+    'songs': 'Songs', 'songsEnabled': 'Songs Enabled', 'songBond1': 'First Song Bond', 'songBond2': 'Second Song Bond',
+    'resonancePerHit': 'Resonance per Hit', 'resonanceDrainDelayTicks': 'Drain Delay (ticks)',
+    'resonanceDrainPerSecond': 'Drain per Second', 'songCooldownTicks': 'Song Cooldown (ticks)',
+    'songDamageScale': 'Song Damage Scale',
+    'balance': 'Balance', 'qualityDamagePerTier': 'Damage per Quality Tier', 'advantageBonus': 'Advantage Bonus',
+    'disadvantagePenalty': 'Disadvantage Penalty',
+    'technical': 'Technical', 'validateIntervalTicks': 'Validation Interval (ticks)', 'debug': 'Debug Logging',
+}
+for _k, _v in CONFIG_LANG.items():
+    LANG['edelraids.configuration.' + _k] = _v
 for _el, _name, *_ in ELEMENTS:
     LANG['edelraids.element.edelraids.' + _el] = _name
 for _fid, _name, *_ in FORMS:

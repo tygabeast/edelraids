@@ -38,7 +38,7 @@ public final class EdelRaids {
         modBus.addListener(EdelRaids::onAttributes);
         container.registerConfig(ModConfig.Type.SERVER, Config.SPEC);
         CommonEvents.register(NeoForge.EVENT_BUS);
-        if (FMLEnvironment.dist == Dist.CLIENT) com.tygabeast.edelraids.client.ClientSetup.init(modBus);
+        if (FMLEnvironment.dist == Dist.CLIENT) com.tygabeast.edelraids.client.ClientSetup.init(modBus, container);
     }
 
     private static void onAttributes(EntityAttributeCreationEvent event) {
