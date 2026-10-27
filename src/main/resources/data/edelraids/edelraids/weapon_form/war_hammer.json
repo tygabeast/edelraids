@@ -1,5 +1,6 @@
 {
   "attack_damage": 10.0,
   "attack_speed": 0.8,
-  "better_combat_preset": "bettercombat:hammer"
+  "better_combat_preset": "bettercombat:hammer",
+  "sting_arm": "heavy"
 }

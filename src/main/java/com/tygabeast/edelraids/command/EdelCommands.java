@@ -9,6 +9,8 @@ import com.tygabeast.edelraids.bond.EdelRegistry;
 import com.tygabeast.edelraids.bond.ReactManager;
 import com.tygabeast.edelraids.data.EdelRaidData;
 import com.tygabeast.edelraids.entity.EdelRaidEntity;
+import com.tygabeast.edelraids.entity.StingRaidEntity;
+import com.tygabeast.edelraids.bond.StingRegistry;
 import com.tygabeast.edelraids.item.EdelWeaponItem;
 import com.tygabeast.edelraids.registry.ModComponents;
 import net.minecraft.commands.CommandSourceStack;
@@ -37,6 +39,8 @@ import org.jetbrains.annotations.Nullable;
  * /edelraids info              - anyone: show her name, element, form, quality, bond and registry state
  * /edelraids bond <value>      - operators: set her bond, for testing awakening
  * /edelraids create <element> [form] [quality] - operators: create a specific Edel Raid (any ring, for testing)
+ * /edelraids sting <element> [form] [hostile|freed] - operators: create a Sting Raid (for testing)
+ * release and info also work on a freed Sting Raid you look at; releasing one lets her leave.
  */
 public final class EdelCommands {
     private EdelCommands() {}
@@ -55,6 +59,13 @@ public final class EdelCommands {
                                         .then(Commands.argument("quality", IntegerArgumentType.integer(1, 3))
                                                 .executes(ctx -> create(ctx, ResourceLocationArgument.getId(ctx, "form"),
                                                         IntegerArgumentType.getInteger(ctx, "quality")))))))
+                .then(Commands.literal("sting").requires(s -> s.hasPermission(2))
+                        .then(Commands.argument("element", ResourceLocationArgument.id()).suggests(EdelCommands::suggestElements)
+                                .executes(ctx -> createSting(ctx, null, true))
+                                .then(Commands.argument("form", ResourceLocationArgument.id()).suggests(EdelCommands::suggestForms)
+                                        .executes(ctx -> createSting(ctx, ResourceLocationArgument.getId(ctx, "form"), true))
+                                        .then(Commands.literal("hostile").executes(ctx -> createSting(ctx, ResourceLocationArgument.getId(ctx, "form"), true)))
+                                        .then(Commands.literal("freed").executes(ctx -> createSting(ctx, ResourceLocationArgument.getId(ctx, "form"), false))))))
                 .then(Commands.literal("bond").requires(s -> s.hasPermission(2))
                         .then(Commands.argument("value", IntegerArgumentType.integer(0))
                                 .executes(ctx -> setBond(ctx, IntegerArgumentType.getInteger(ctx, "value"))))));
@@ -78,10 +89,32 @@ public final class EdelCommands {
         return best;
     }
 
+    /** A freed Sting Raid you own and look at (within 6 blocks), or null. */
+    @Nullable
+    private static StingRaidEntity lookedAtSting(ServerPlayer p) {
+        Vec3 eye = p.getEyePosition();
+        Vec3 look = p.getLookAngle();
+        StingRaidEntity best = null;
+        double bestDot = 0.95;
+        for (StingRaidEntity e : p.level().getEntitiesOfClass(StingRaidEntity.class, p.getBoundingBox().inflate(6.0), e -> e.isOwnedBy(p))) {
+            double dot = e.position().add(0, e.getBbHeight() * 0.5, 0).subtract(eye).normalize().dot(look);
+            if (dot > bestDot) {
+                bestDot = dot;
+                best = e;
+            }
+        }
+        return best;
+    }
+
     private static int releasePrompt(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer p = ctx.getSource().getPlayerOrException();
         String name = targetName(p);
         if (name == null) {
+            StingRaidEntity sting = lookedAtSting(p);
+            if (sting != null) {
+                ctx.getSource().sendSuccess(() -> Component.translatable("command.edelraids.release_sting_prompt", sting.getStingName()), false);
+                return 1;
+            }
             ctx.getSource().sendFailure(Component.translatable("command.edelraids.no_target"));
             return 0;
         }
@@ -101,6 +134,13 @@ public final class EdelCommands {
             }
         }
         if (e == null) {
+            StingRaidEntity sting = lookedAtSting(p);
+            if (sting != null) {
+                String stingName = sting.getStingName();
+                sting.releaseAndLeave();
+                ctx.getSource().sendSuccess(() -> Component.translatable("command.edelraids.released_sting", stingName), false);
+                return 1;
+            }
             ctx.getSource().sendFailure(Component.translatable("command.edelraids.no_target"));
             return 0;
         }
@@ -114,8 +154,17 @@ public final class EdelCommands {
         ServerPlayer p = ctx.getSource().getPlayerOrException();
         EdelRaidData d = targetData(p);
         if (d == null) {
-            ctx.getSource().sendFailure(Component.translatable("command.edelraids.no_target"));
-            return 0;
+            StingRaidEntity s = lookedAtSting(p);
+            if (s == null) {
+                ctx.getSource().sendFailure(Component.translatable("command.edelraids.no_target"));
+                return 0;
+            }
+            int count = StingRegistry.get(p.getServer()).count(p.getUUID());
+            ctx.getSource().sendSuccess(() -> Component.translatable("command.edelraids.sting_info", s.getStingName(),
+                    EdelWeaponItem.elementName(s.getElementId()), Component.translatable("edelraids.sting_arm." + s.getArm().id()),
+                    s.getStrainDisplay(), Component.translatable(s.isStabilized() ? "edelraids.sting.stabilized" : "edelraids.sting.unstabilized"),
+                    count, Config.STING_LIMIT.get()), false);
+            return 1;
         }
         EdelRegistry.Entry entry = EdelRegistry.get(p.getServer()).get(d.id());
         String where = entry == null ? "untracked" : (entry.held() ? "weapon" : "companion") + ", stamp " + entry.stamp();
@@ -182,6 +231,39 @@ public final class EdelCommands {
         ctx.getSource().sendSuccess(() -> Component.translatable("command.edelraids.created", e.getEdelName(),
                 EdelWeaponItem.elementName(elementId), EdelWeaponItem.formName(finalForm),
                 Component.translatable("edelraids.quality." + e.getQuality())), true);
+        return 1;
+    }
+
+    private static int createSting(CommandContext<CommandSourceStack> ctx, @Nullable ResourceLocation formId, boolean hostile) throws CommandSyntaxException {
+        ServerPlayer p = ctx.getSource().getPlayerOrException();
+        ResourceLocation elementId = ResourceLocationArgument.getId(ctx, "element");
+        Element element = Elements.element(p.level().registryAccess(), elementId);
+        if (element == null) {
+            ctx.getSource().sendFailure(Component.translatable("command.edelraids.unknown_element", elementId.toString()));
+            return 0;
+        }
+        ResourceLocation form = formId;
+        if (form == null) {
+            form = element.forms().isEmpty() ? EdelRaids.id("longsword") : element.forms().get(p.getRandom().nextInt(element.forms().size()));
+        } else if (p.level().registryAccess().registryOrThrow(ModRegistries.WEAPON_FORM).get(form) == null) {
+            ctx.getSource().sendFailure(Component.translatable("command.edelraids.unknown_form", form.toString()));
+            return 0;
+        }
+        if (!hostile && StingRegistry.get(p.getServer()).count(p.getUUID()) >= Config.STING_LIMIT.get()) {
+            ctx.getSource().sendFailure(Component.translatable("message.edelraids.sting_limit", Config.STING_LIMIT.get()));
+            return 0;
+        }
+        StingRaidEntity e = ModEntities.STING_RAID.get().create(p.serverLevel());
+        if (e == null) return 0;
+        e.moveTo(p.getX(), p.getY(), p.getZ(), p.getYRot(), 0f);
+        e.setIdentity(elementId, form, EdelRaidEntity.randomName(p.getRandom()));
+        if (!hostile) {
+            e.tame(p);
+            StingRegistry.get(p.getServer()).add(p.getUUID(), e.getUUID());
+        }
+        p.serverLevel().addFreshEntity(e);
+        ctx.getSource().sendSuccess(() -> Component.translatable(hostile ? "command.edelraids.sting_created_hostile" : "command.edelraids.sting_created",
+                e.getStingName(), EdelWeaponItem.elementName(elementId), Component.translatable("edelraids.sting_arm." + e.getArm().id())), true);
         return 1;
     }
 

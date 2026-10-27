@@ -3,5 +3,6 @@
   "attack_speed": 1.0,
   "sweeps": true,
   "reach_bonus": 0.5,
-  "better_combat_preset": "bettercombat:claymore"
+  "better_combat_preset": "bettercombat:claymore",
+  "sting_arm": "heavy"
 }

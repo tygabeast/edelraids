@@ -11,7 +11,7 @@ not affiliated with or endorsed by its rights holders.
 
 | Action | How |
 | --- | --- |
-| Get an Edel Raid | Creative tab "Edel Raids: Pledged Blades" → Edel Raid Spawn Egg (natural sources come in phase 3) |
+| Get an Edel Raid | Creative tab "Edel Raids: Pledged Blades" → Edel Raid Spawn Egg (natural sources come later in phase 3) |
 | Bond (become her Pledger) | Right-click an unbonded Edel Raid with an empty hand |
 | Stay / follow | Right-click her with an empty hand |
 | React | Sneak + right-click her with an empty hand. Takes about 1 second; stay within 16 blocks |
@@ -33,6 +33,33 @@ Rules:
 - She reforms if her weapon is dropped, if her Pledger dies, or if her weapon is put in a container and the container is closed.
 - Bond rises by 1 per hostile mob her Pledger kills with her weapon, and by 1 for every 5 minutes she spends within
   16 blocks of her Pledger as a companion. At 100 the weapon awakens: extra details and +1 damage.
+
+## Sting Raids
+
+Sting Raids are girls who have been implanted with an artificial stone. They look like Edel Raids, except that the
+stone is cut a little wrong, has a hairline crack and flickers instead of glowing steadily. Hunters make them; players
+never do.
+
+| Action | How |
+| --- | --- |
+| Meet one | Creative tab → Sting Raid Spawn Egg (a hunter's Sting Raid; hunter camps come in 0.5.0) |
+| Free one | Beat a hunter's Sting Raid: she is subdued, not killed. Right-click her within 2 minutes to free her, or she escapes |
+| Revive her | Use a **Stone Stabilizer** on a subdued Sting Raid. A freed one stays subdued until you do |
+| Steady her stone | Use a **Refined Stabilizer** on a freed Sting Raid once: her stone strains half as fast from then on |
+| Stay / follow | Right-click her with an empty hand |
+| Let her go | `/edelraids release`, then `/edelraids release confirm`, while looking at her: she leaves to find her own way |
+| Info | `/edelraids info` while looking at her: element, arm, strain, stabilizer and how many you look after |
+| Create one (operators) | `/edelraids sting <element> [form] [hostile\|freed]` |
+
+- **Self-React:** when she has a target she Reacts by herself: her forearm becomes an arm blade, a heavy arm or a
+  launcher arm, picked by her element's weapon forms. She reverts after 10 seconds without a target.
+- **Reacted:** much harder hits (or arrows from the launcher), each carrying her element's effect and ring advantage.
+- **Strain:** staying Reacted strains her stone (full in 20 seconds). At full strain she is forced out and staggered
+  for 3 seconds, and she can React again once strain falls to half. Her gem flickers faster as strain builds.
+- **Freed Sting Raids** follow, stay and fight like an Edel Raid, but cannot bond, sing, awaken or React with you.
+  You can look after 2 at a time. Subduing a hunter's Sting Raid counts as a kill for your Edel Raid's bond.
+- **Stone Stabilizer** (makes 2): amethyst shard above and below, iron ingot either side, redstone in the middle.
+  **Refined Stabilizer:** a diamond surrounded by four Stone Stabilizers, with amethyst shards in the corners.
 
 ## Resonance and songs
 
@@ -108,7 +135,8 @@ Elements and weapon forms are datapack registries:
 - `data/<namespace>/edelraids/element/<name>.json`: `ring` (1-4), `position` (0-5), `color` ("#RRGGBB"),
   optional `forms` (list of form ids), optional `on_hit` (`type`, `strength`), optional `rollable` (default true).
 - `data/<namespace>/edelraids/weapon_form/<name>.json`: `attack_damage`, `attack_speed`, optional `sweeps`,
-  `reach_bonus`, `ranged`, `paired`, and `better_combat_preset` (a Better Combat weapon-attributes id).
+  `reach_bonus`, `ranged`, `paired`, `better_combat_preset` (a Better Combat weapon-attributes id), and
+  `sting_arm` (`blade`, `heavy` or `launcher`; the arm a Sting Raid of this form grows).
 
 A form's client model is `assets/<namespace>/geo/item/weapon/<name>.geo.json` with texture
 `assets/<namespace>/textures/item/weapon/<name>.png`; forms without a model render as the longsword.
@@ -121,6 +149,16 @@ gradle build              # jar in build/libs
 ```
 
 GeckoLib is a compile-only dependency resolved from its official Maven; it is never bundled.
+
+## 0.4.0 changes
+
+- Sting Raids: hunters' Sting Raids to fight and free, self-React into three arm weapons, strain and stagger,
+  Stone and Refined Stabilizers, a limit of 2 freed per player, and the `/edelraids sting` test command.
+- Weapon forms have an optional `sting_arm` field (`blade`, `heavy` or `launcher`).
+- Edel Raids no longer attack any of their Pledger's own tamed animals, and nobody targets a wounded Edel Raid or a
+  subdued Sting Raid.
+- Songs no longer hit companions belonging to players you could not hurt (PvP off, or a teammate).
+- Cleanup: the anti-friendly-fire check is shared by Edel Raids and Sting Raids.
 
 ## 0.3.1 changes
 

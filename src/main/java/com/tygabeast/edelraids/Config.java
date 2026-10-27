@@ -61,6 +61,31 @@ public final class Config {
     public static final ModConfigSpec.DoubleValue SONG_DAMAGE_SCALE = B
             .comment("Multiplier on all song damage and absorption.")
             .defineInRange("songDamageScale", 1.0, 0.0, 10.0);
+    static { B.pop().push("sting_raids"); }
+    public static final ModConfigSpec.IntValue STING_LIMIT = B
+            .comment("How many freed Sting Raids one player can look after at once. 0 stops players freeing them.")
+            .defineInRange("stingLimit", 2, 0, 64);
+    public static final ModConfigSpec.DoubleValue STING_STRAIN_PER_SECOND = B
+            .comment("Strain her artificial stone builds per second while she is Reacted. At 100 she is forced out and staggered.")
+            .defineInRange("strainPerSecond", 5.0, 0.0, 100.0);
+    public static final ModConfigSpec.DoubleValue STING_STABILIZED_FACTOR = B
+            .comment("Strain build-up multiplier once a Refined Stabilizer has been used on her (0.5 = half as fast).")
+            .defineInRange("stabilizedStrainFactor", 0.5, 0.0, 1.0);
+    public static final ModConfigSpec.DoubleValue STING_STRAIN_RECOVERY = B
+            .comment("Strain lost per second while she is not Reacted. She can React again once strain is at 50 or less.")
+            .defineInRange("strainRecoveryPerSecond", 10.0, 0.1, 100.0);
+    public static final ModConfigSpec.IntValue STING_STAGGER_TICKS = B
+            .comment("How long she is staggered when strain forces her out of React (60 = 3 seconds).")
+            .defineInRange("staggerTicks", 60, 0, 600);
+    public static final ModConfigSpec.IntValue STING_REVERT_TICKS = B
+            .comment("Ticks without a target before she reverts from React (200 = 10 seconds).")
+            .defineInRange("revertDelayTicks", 200, 20, 6000);
+    public static final ModConfigSpec.IntValue STING_ESCAPE_TICKS = B
+            .comment("How long a subdued hunter's Sting Raid waits to be freed before she escapes (2400 = 2 minutes).")
+            .defineInRange("subduedEscapeTicks", 2400, 20, 72000);
+    public static final ModConfigSpec.DoubleValue STING_DAMAGE_SCALE = B
+            .comment("Multiplier on the damage her arm weapon adds while Reacted, and on her launcher's shots.")
+            .defineInRange("stingDamageScale", 1.0, 0.0, 10.0);
     static { B.pop().push("balance"); }
     public static final ModConfigSpec.DoubleValue QUALITY_DAMAGE = B
             .comment("Flat attack damage added per quality tier above the first. Placeholder until tiers are designed.")

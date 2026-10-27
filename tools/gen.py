@@ -186,6 +186,169 @@ def entity_animations():
     }}
 
 
+# ------------------------------------------------------------------ Sting Raid entity (same body, artificial stone)
+
+ARM_STONE = (194, 208, 226, 255)
+ARM_EDGE = (236, 244, 252, 255)
+ARM_DARK = (132, 140, 150, 255)
+CRACK = (172, 172, 178, 255)
+
+
+def sting_texture():
+    """The Edel Raid sheet on top (64x64), the forearm in a free spot, and the three arm weapons below (rows 64+).
+    The arm weapons are pale stone; the renderer washes them with a sixth of her element."""
+    base = entity_texture()
+    px = canvas(64, 128)
+    for y in range(64):
+        px[y] = list(base[y])
+    # forearm 4x6x4 at 40,32 (the upper arm reuses the top half of the Edel Raid arm at 40,16)
+    box_uv(px, 40, 32, 4, 6, 4, all_faces(SKIN))
+    # the artificial gem: a hairline crack across its face, and a chipped shard beside it (1x1x1 at 60,4)
+    px[2][58] = CRACK
+    box_uv(px, 60, 4, 1, 1, 1, all_faces(GEM, 0.9, 0.9, 0.9, 0.9))
+    # arm blade: cuff 5x4x5 at 0,64 and blade 1x13x2 at 20,64
+    box_uv(px, 0, 64, 5, 4, 5, all_faces(ARM_DARK))
+    rect(px, 5, 69, 15, 1, ARM_STONE)
+    box_uv(px, 20, 64, 1, 13, 2, all_faces(ARM_STONE))
+    rect(px, 22, 66, 1, 13, ARM_EDGE)       # front edge
+    rect(px, 25, 66, 1, 13, ARM_EDGE)       # back edge
+    # heavy arm: cuff 5x3x5 at 24,80 and fist 6x7x6 at 0,80
+    box_uv(px, 24, 80, 5, 3, 5, all_faces(ARM_DARK))
+    box_uv(px, 0, 80, 6, 7, 6, all_faces(ARM_STONE))
+    rect(px, 0, 87, 24, 1, ARM_EDGE)        # knuckle ridge
+    rect(px, 0, 91, 24, 1, ARM_DARK)
+    # launcher arm: tube 5x7x5 at 0,96 and muzzle 3x3x3 at 20,96
+    box_uv(px, 0, 96, 5, 7, 5, all_faces(ARM_STONE))
+    rect(px, 0, 103, 20, 1, ARM_DARK)
+    rect(px, 0, 106, 20, 1, ARM_DARK)
+    box_uv(px, 20, 96, 3, 3, 3, all_faces(ARM_DARK))
+    rect(px, 27, 97, 1, 1, (40, 42, 48, 255))   # bore, on the muzzle's bottom face
+    return px
+
+
+def sting_geo():
+    geo = entity_geo()
+    g = geo['minecraft:geometry'][0]
+    g['description']['identifier'] = 'geometry.sting_raid'
+    g['description']['texture_height'] = 128
+    bones = []
+    for b in g['bones']:
+        b = json.loads(json.dumps(b))
+        if b['name'] == 'right_arm':
+            b['cubes'] = [cube([-8, 18, -2], [4, 6, 4], [40, 16])]
+        if b['name'] == 'gem':
+            # cut slightly wrong: tilted, off-centre, with a chipped shard
+            b['cubes'] = [cube([-1.1, 28.8, -4.5], [2, 2, 1], [56, 0], [0, 29.8, -4.5], [0, 0, 14]),
+                          cube([0.7, 30.4, -4.3], [1, 1, 1], [60, 4], [1.2, 30.9, -4], [0, 0, -20])]
+        bones.append(b)
+    bones += [
+        {'name': 'right_forearm', 'parent': 'right_arm', 'pivot': [-6, 18, 0],
+         'cubes': [cube([-8, 12, -2], [4, 6, 4], [40, 32])]},
+        {'name': 'sting_blade', 'parent': 'right_arm', 'pivot': [-6, 18, 0], 'cubes': [
+            cube([-8.5, 14, -2.5], [5, 4, 5], [0, 64]),
+            cube([-6.5, 1, -1], [1, 13, 2], [20, 64]),
+        ]},
+        {'name': 'sting_heavy', 'parent': 'right_arm', 'pivot': [-6, 18, 0], 'cubes': [
+            cube([-8.5, 15, -2.5], [5, 3, 5], [24, 80]),
+            cube([-9, 8, -3], [6, 7, 6], [0, 80]),
+        ]},
+        {'name': 'sting_launcher', 'parent': 'right_arm', 'pivot': [-6, 18, 0], 'cubes': [
+            cube([-8.5, 11, -2.5], [5, 7, 5], [0, 96]),
+            cube([-7.5, 8, -1.5], [3, 3, 3], [20, 96]),
+        ]},
+    ]
+    g['bones'] = bones
+    return geo
+
+
+def sting_animations():
+    base = entity_animations()['animations']
+    anims = {k.replace('animation.edel_raid.', 'animation.sting_raid.'): v for k, v in base.items()
+             if not k.endswith(('.react', '.reform'))}
+    idle = base['animation.edel_raid.idle']['bones']
+    walk = base['animation.edel_raid.walk']['bones']
+    armed = [-35, 0, 6]
+    pop = {'scale': {'0.0': [0.3, 0.3, 0.3], '0.35': [1.1, 1.1, 1.1], '0.5': [1, 1, 1]}}
+    anims.update({
+        'animation.sting_raid.self_react': {'loop': False, 'animation_length': 0.5, 'bones': {
+            'right_arm': {'rotation': {'0.0': [0, 0, 0], '0.2': [-45, 0, 25], '0.5': armed}},
+            'body': {'rotation': {'0.0': [0, 0, 0], '0.2': [6, -8, 0], '0.5': [0, 0, 0]}},
+            'sting_blade': pop, 'sting_heavy': pop, 'sting_launcher': pop,
+        }},
+        'animation.sting_raid.reacted_idle': {'loop': True, 'animation_length': 3.0, 'bones': {
+            'right_arm': {'rotation': armed},
+            'left_arm': idle['left_arm'],
+            'body': idle['body'],
+        }},
+        'animation.sting_raid.reacted_walk': {'loop': True, 'animation_length': 1.0, 'bones': {
+            'right_leg': walk['right_leg'], 'left_leg': walk['left_leg'], 'left_arm': walk['left_arm'],
+            'right_arm': {'rotation': {'0.0': [-30, 0, 6], '0.5': [-38, 0, 6], '1.0': [-30, 0, 6]}},
+        }},
+        'animation.sting_raid.stagger': {'loop': True, 'animation_length': 1.0, 'bones': {
+            'body': {'rotation': {'0.0': [15, 0, -6], '0.5': [17, 0, 6], '1.0': [15, 0, -6]}},
+            'head': {'rotation': [18, 0, 0]},
+            'right_arm': {'rotation': [-10, 0, 18]},
+            'left_arm': {'rotation': [-28, 0, -14]},
+        }},
+        'animation.sting_raid.attack': {'loop': False, 'animation_length': 0.4, 'bones': {
+            'right_arm': {'rotation': {'0.0': armed, '0.15': [-125, 0, 12], '0.4': [-20, 0, 6]}},
+        }},
+        'animation.sting_raid.aim': {'loop': True, 'animation_length': 1.0, 'bones': {
+            'right_arm': {'rotation': [-90, 0, 0]},
+        }},
+    })
+    return {'format_version': '1.8.0', 'animations': anims}
+
+
+def stabilizer_texture(refined):
+    """16x16 item: an amethyst-like crystal held in a metal clasp (gold for the refined one)."""
+    px = canvas(16, 16)
+    crystal = (176, 132, 226, 255) if not refined else (214, 178, 255, 255)
+    light = shade(crystal, 1.25)
+    dark = shade(crystal, 0.7)
+    band = (168, 176, 186, 255) if not refined else (232, 196, 82, 255)
+    band_dark = shade(band, 0.72)
+    for y in range(2, 14):
+        half = min(y - 1, 14 - y, 3)
+        for x in range(8 - half, 8 + half):
+            px[y][x] = light if x < 8 - half + 2 and y < 9 else (dark if x >= 8 + half - 1 else crystal)
+    rect(px, 4, 7, 8, 2, band)
+    rect(px, 4, 9, 8, 1, band_dark)
+    rect(px, 3, 7, 1, 3, band_dark)
+    rect(px, 12, 7, 1, 3, band_dark)
+    if refined:
+        rect(px, 7, 1, 2, 1, (255, 255, 255, 255))
+        px[4][12] = (255, 255, 255, 255)
+        px[11][3] = (255, 240, 200, 255)
+    return px
+
+
+def write_recipes():
+    rec = os.path.join(DATA, MODID, 'recipe')
+    adv = os.path.join(DATA, MODID, 'advancement', 'recipes', 'misc')
+    write_json(os.path.join(rec, 'stone_stabilizer.json'), {
+        'type': 'minecraft:crafting_shaped', 'category': 'misc',
+        'pattern': [' A ', 'IRI', ' A '],
+        'key': {'A': {'item': 'minecraft:amethyst_shard'}, 'I': {'item': 'minecraft:iron_ingot'},
+                'R': {'item': 'minecraft:redstone'}},
+        'result': {'id': MODID + ':stone_stabilizer', 'count': 2}})
+    write_json(os.path.join(rec, 'refined_stabilizer.json'), {
+        'type': 'minecraft:crafting_shaped', 'category': 'misc',
+        'pattern': ['ASA', 'SDS', 'ASA'],
+        'key': {'A': {'item': 'minecraft:amethyst_shard'}, 'S': {'item': MODID + ':stone_stabilizer'},
+                'D': {'item': 'minecraft:diamond'}},
+        'result': {'id': MODID + ':refined_stabilizer', 'count': 1}})
+    for name, trigger_item in (('stone_stabilizer', 'minecraft:amethyst_shard'), ('refined_stabilizer', MODID + ':stone_stabilizer')):
+        write_json(os.path.join(adv, name + '.json'), {
+            'parent': 'minecraft:recipes/root',
+            'criteria': {
+                'has_item': {'trigger': 'minecraft:inventory_changed', 'conditions': {'items': [{'items': trigger_item}]}},
+                'has_the_recipe': {'trigger': 'minecraft:recipe_unlocked', 'conditions': {'recipe': MODID + ':' + name}},
+            },
+            'requirements': [['has_item', 'has_the_recipe']],
+            'rewards': {'recipes': [MODID + ':' + name]}})
+
+
 # ------------------------------------------------------------------ Longsword weapon form (placeholder)
 
 STEEL = (214, 226, 232, 255)
@@ -408,6 +571,9 @@ FORMS = [
     ('bow', 'Bow', 3.0, 1.0, False, 0.0, True, None, False),
 ]
 
+# The arm weapon a Sting Raid of each form grows (forms not listed: blade, or launcher if ranged)
+STING_ARMS = {'greatsword': 'heavy', 'axe': 'heavy', 'war_hammer': 'heavy', 'gauntlets': 'heavy', 'bow': 'launcher'}
+
 # Custom mob effects: id, display name, icon color
 EFFECTS = [
     ('shattered', 'Shattered', (169, 119, 62, 255)),
@@ -503,6 +669,8 @@ def write_registries():
             obj['better_combat_preset'] = preset
         if paired:
             obj['paired'] = True
+        if fid in STING_ARMS:
+            obj['sting_arm'] = STING_ARMS[fid]
         write_json(os.path.join(base, 'weapon_form', fid + '.json'), obj)
 
 
@@ -707,6 +875,31 @@ LANG = {
     'message.edelraids.silenced': 'You are silenced and cannot sing.',
     'message.edelraids.learned_song': '%s learned %s!',
     'message.edelraids.recovered_lost': '%s was lost from your inventory and has reformed beside you.',
+    'entity.edelraids.sting_raid': 'Sting Raid',
+    'item.edelraids.sting_raid_spawn_egg': 'Sting Raid Spawn Egg',
+    'item.edelraids.stone_stabilizer': 'Stone Stabilizer',
+    'item.edelraids.refined_stabilizer': 'Refined Stabilizer',
+    'tooltip.edelraids.stone_stabilizer': 'Use on a subdued Sting Raid to steady her failing stone.',
+    'tooltip.edelraids.refined_stabilizer': 'Use on a freed Sting Raid: her stone strains half as fast from now on.',
+    'edelraids.sting_arm.blade': 'arm blade',
+    'edelraids.sting_arm.heavy': 'heavy arm',
+    'edelraids.sting_arm.launcher': 'launcher arm',
+    'edelraids.sting.stabilized': 'stabilized',
+    'edelraids.sting.unstabilized': 'not stabilized',
+    'message.edelraids.sting_freed': 'You freed %s from the hunters. She will follow you.',
+    'message.edelraids.sting_failing': "%s's stone is failing. Use a Stone Stabilizer to steady it.",
+    'message.edelraids.sting_revived': "%s's stone steadies, and she gets back up.",
+    'message.edelraids.sting_steady': "%s's stone is steady for now.",
+    'message.edelraids.sting_stabilized': "%s's stone is refined. It will strain half as fast.",
+    'message.edelraids.sting_already_stable': "%s's stone has already been refined.",
+    'message.edelraids.sting_limit': 'You cannot look after more than %s Sting Raids.',
+    'message.edelraids.sting_not_yours': '%s follows someone else.',
+    'message.edelraids.sting_no_react': '%s cannot React with a Pledger. Her stone only lets her change her own arm.',
+    'command.edelraids.release_sting_prompt': '%s will leave to find her own way. Run /edelraids release confirm to continue.',
+    'command.edelraids.released_sting': '%s thanks you and leaves to find her own way.',
+    'command.edelraids.sting_info': '%s: %s Sting Raid, %s, strain %s, %s. You look after %s of %s.',
+    'command.edelraids.sting_created': 'Created %s: %s Sting Raid with an %s, following you.',
+    'command.edelraids.sting_created_hostile': "Created %s: a hunter's %s Sting Raid with an %s.",
 }
 # Labels for NeoForge's config screen (tooltips fall back to the comments in the config classes).
 CONFIG_LANG = {
@@ -730,6 +923,10 @@ CONFIG_LANG = {
     'songDamageScale': 'Song Damage Scale',
     'balance': 'Balance', 'qualityDamagePerTier': 'Damage per Quality Tier', 'advantageBonus': 'Advantage Bonus',
     'disadvantagePenalty': 'Disadvantage Penalty',
+    'sting_raids': 'Sting Raids', 'stingLimit': 'Sting Raid Limit', 'strainPerSecond': 'Strain per Second',
+    'stabilizedStrainFactor': 'Refined Strain Multiplier', 'strainRecoveryPerSecond': 'Strain Recovery per Second',
+    'staggerTicks': 'Stagger Time (ticks)', 'revertDelayTicks': 'Revert Delay (ticks)',
+    'subduedEscapeTicks': 'Escape Time (ticks)', 'stingDamageScale': 'Sting Raid Damage Scale',
     'technical': 'Technical', 'validateIntervalTicks': 'Validation Interval (ticks)', 'debug': 'Debug Logging',
 }
 for _k, _v in CONFIG_LANG.items():
@@ -781,6 +978,14 @@ def main():
     write_png(os.path.join(ASSETS, 'textures', 'entity', 'edel_raid.png'), 64, 64, entity_texture())
     write_json(os.path.join(ASSETS, 'geo', 'entity', 'edel_raid.geo.json'), entity_geo())
     write_json(os.path.join(ASSETS, 'animations', 'entity', 'edel_raid.animation.json'), entity_animations())
+    write_png(os.path.join(ASSETS, 'textures', 'entity', 'sting_raid.png'), 64, 128, sting_texture())
+    write_json(os.path.join(ASSETS, 'geo', 'entity', 'sting_raid.geo.json'), sting_geo())
+    write_json(os.path.join(ASSETS, 'animations', 'entity', 'sting_raid.animation.json'), sting_animations())
+    for name, refined in (('stone_stabilizer', False), ('refined_stabilizer', True)):
+        write_png(os.path.join(ASSETS, 'textures', 'item', name + '.png'), 16, 16, stabilizer_texture(refined))
+        write_json(os.path.join(ASSETS, 'models', 'item', name + '.json'),
+                   {'parent': 'minecraft:item/generated', 'textures': {'layer0': MODID + ':item/' + name}})
+    write_recipes()
 
     write_png(os.path.join(ASSETS, 'textures', 'item', 'weapon', 'longsword.png'), 32, 32, longsword_texture())
     write_json(os.path.join(ASSETS, 'geo', 'item', 'weapon', 'longsword.geo.json'), longsword_geo())
@@ -802,6 +1007,7 @@ def main():
                            'edelraids', 'client', 'FormIndex.java'), 'w', newline='\n') as fj:
         fj.write(FORM_INDEX_JAVA.replace('@FORMS@', ',\n'.join('            "' + f[0] + '"' for f in FORMS)))
     write_json(os.path.join(ASSETS, 'models', 'item', 'edel_raid_spawn_egg.json'), {'parent': 'minecraft:item/template_spawn_egg'})
+    write_json(os.path.join(ASSETS, 'models', 'item', 'sting_raid_spawn_egg.json'), {'parent': 'minecraft:item/template_spawn_egg'})
     write_json(os.path.join(ASSETS, 'lang', 'en_us.json'), dict(sorted(LANG.items())))
 
     for tag in ('sword', 'sharp_weapon', 'weapon', 'fire_aspect', 'durability', 'bow'):

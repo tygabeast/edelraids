@@ -17,10 +17,12 @@ import java.util.Optional;
  * @param ranged             draws and fires like a bow, without ammunition
  * @param betterCombatPreset Better Combat weapon-attributes preset (for example bettercombat:claymore), used when it is installed
  * @param paired             a matching second piece appears in the off hand while she is in the main hand (twin blades, gauntlets)
+ * @param stingArm           the arm weapon a Sting Raid of this form grows: "blade", "heavy" or "launcher"; empty picks
+ *                           launcher for ranged forms and blade otherwise (see {@link StingArm#of})
  */
 public record WeaponForm(float attackDamage, float attackSpeed, boolean sweeps, float reachBonus, boolean ranged,
-                         Optional<ResourceLocation> betterCombatPreset, boolean paired) {
-    public static final WeaponForm FALLBACK = new WeaponForm(7f, 1.6f, true, 0f, false, Optional.empty(), false);
+                         Optional<ResourceLocation> betterCombatPreset, boolean paired, String stingArm) {
+    public static final WeaponForm FALLBACK = new WeaponForm(7f, 1.6f, true, 0f, false, Optional.empty(), false, "");
 
     public static final Codec<WeaponForm> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.floatRange(1f, 100f).fieldOf("attack_damage").forGetter(WeaponForm::attackDamage),
@@ -29,6 +31,7 @@ public record WeaponForm(float attackDamage, float attackSpeed, boolean sweeps, 
             Codec.floatRange(-3f, 3f).optionalFieldOf("reach_bonus", 0f).forGetter(WeaponForm::reachBonus),
             Codec.BOOL.optionalFieldOf("ranged", false).forGetter(WeaponForm::ranged),
             ResourceLocation.CODEC.optionalFieldOf("better_combat_preset").forGetter(WeaponForm::betterCombatPreset),
-            Codec.BOOL.optionalFieldOf("paired", false).forGetter(WeaponForm::paired)
+            Codec.BOOL.optionalFieldOf("paired", false).forGetter(WeaponForm::paired),
+            Codec.STRING.optionalFieldOf("sting_arm", "").forGetter(WeaponForm::stingArm)
     ).apply(i, WeaponForm::new));
 }

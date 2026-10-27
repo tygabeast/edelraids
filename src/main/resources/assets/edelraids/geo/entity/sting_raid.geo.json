@@ -1,0 +1,426 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.sting_raid",
+        "texture_width": 64,
+        "texture_height": 128,
+        "visible_bounds_width": 2,
+        "visible_bounds_height": 3,
+        "visible_bounds_offset": [
+          0,
+          1.5,
+          0
+        ]
+      },
+      "bones": [
+        {
+          "name": "root",
+          "pivot": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "body",
+          "parent": "root",
+          "pivot": [
+            0,
+            24,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -4,
+                12,
+                -2
+              ],
+              "size": [
+                8,
+                12,
+                4
+              ],
+              "uv": [
+                16,
+                16
+              ]
+            },
+            {
+              "origin": [
+                -4.5,
+                9,
+                -2.5
+              ],
+              "size": [
+                9,
+                4,
+                5
+              ],
+              "uv": [
+                0,
+                32
+              ]
+            }
+          ]
+        },
+        {
+          "name": "head",
+          "parent": "body",
+          "pivot": [
+            0,
+            24,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -4,
+                24,
+                -4
+              ],
+              "size": [
+                8,
+                8,
+                8
+              ],
+              "uv": [
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "name": "gem",
+          "parent": "head",
+          "pivot": [
+            0,
+            30,
+            -4
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -1.1,
+                28.8,
+                -4.5
+              ],
+              "size": [
+                2,
+                2,
+                1
+              ],
+              "uv": [
+                56,
+                0
+              ],
+              "pivot": [
+                0,
+                29.8,
+                -4.5
+              ],
+              "rotation": [
+                0,
+                0,
+                14
+              ]
+            },
+            {
+              "origin": [
+                0.7,
+                30.4,
+                -4.3
+              ],
+              "size": [
+                1,
+                1,
+                1
+              ],
+              "uv": [
+                60,
+                4
+              ],
+              "pivot": [
+                1.2,
+                30.9,
+                -4
+              ],
+              "rotation": [
+                0,
+                0,
+                -20
+              ]
+            }
+          ]
+        },
+        {
+          "name": "right_arm",
+          "parent": "body",
+          "pivot": [
+            -5,
+            22,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -8,
+                18,
+                -2
+              ],
+              "size": [
+                4,
+                6,
+                4
+              ],
+              "uv": [
+                40,
+                16
+              ]
+            }
+          ]
+        },
+        {
+          "name": "left_arm",
+          "parent": "body",
+          "pivot": [
+            5,
+            22,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                4,
+                12,
+                -2
+              ],
+              "size": [
+                4,
+                12,
+                4
+              ],
+              "uv": [
+                32,
+                48
+              ]
+            }
+          ]
+        },
+        {
+          "name": "right_leg",
+          "parent": "root",
+          "pivot": [
+            -1.9,
+            12,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -3.9,
+                0,
+                -2
+              ],
+              "size": [
+                4,
+                12,
+                4
+              ],
+              "uv": [
+                0,
+                16
+              ]
+            }
+          ]
+        },
+        {
+          "name": "left_leg",
+          "parent": "root",
+          "pivot": [
+            1.9,
+            12,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -0.1,
+                0,
+                -2
+              ],
+              "size": [
+                4,
+                12,
+                4
+              ],
+              "uv": [
+                16,
+                48
+              ]
+            }
+          ]
+        },
+        {
+          "name": "right_forearm",
+          "parent": "right_arm",
+          "pivot": [
+            -6,
+            18,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -8,
+                12,
+                -2
+              ],
+              "size": [
+                4,
+                6,
+                4
+              ],
+              "uv": [
+                40,
+                32
+              ]
+            }
+          ]
+        },
+        {
+          "name": "sting_blade",
+          "parent": "right_arm",
+          "pivot": [
+            -6,
+            18,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -8.5,
+                14,
+                -2.5
+              ],
+              "size": [
+                5,
+                4,
+                5
+              ],
+              "uv": [
+                0,
+                64
+              ]
+            },
+            {
+              "origin": [
+                -6.5,
+                1,
+                -1
+              ],
+              "size": [
+                1,
+                13,
+                2
+              ],
+              "uv": [
+                20,
+                64
+              ]
+            }
+          ]
+        },
+        {
+          "name": "sting_heavy",
+          "parent": "right_arm",
+          "pivot": [
+            -6,
+            18,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -8.5,
+                15,
+                -2.5
+              ],
+              "size": [
+                5,
+                3,
+                5
+              ],
+              "uv": [
+                24,
+                80
+              ]
+            },
+            {
+              "origin": [
+                -9,
+                8,
+                -3
+              ],
+              "size": [
+                6,
+                7,
+                6
+              ],
+              "uv": [
+                0,
+                80
+              ]
+            }
+          ]
+        },
+        {
+          "name": "sting_launcher",
+          "parent": "right_arm",
+          "pivot": [
+            -6,
+            18,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -8.5,
+                11,
+                -2.5
+              ],
+              "size": [
+                5,
+                7,
+                5
+              ],
+              "uv": [
+                0,
+                96
+              ]
+            },
+            {
+              "origin": [
+                -7.5,
+                8,
+                -1.5
+              ],
+              "size": [
+                3,
+                3,
+                3
+              ],
+              "uv": [
+                20,
+                96
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

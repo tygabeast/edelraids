@@ -20,6 +20,7 @@ import com.tygabeast.edelraids.data.EdelRaidData;
 import com.tygabeast.edelraids.data.Elemental;
 import com.tygabeast.edelraids.data.Elements;
 import com.tygabeast.edelraids.entity.EdelRaidEntity;
+import com.tygabeast.edelraids.entity.StingRaidEntity;
 import com.tygabeast.edelraids.bond.BondMessages;
 import com.tygabeast.edelraids.item.EdelTwinItem;
 import com.tygabeast.edelraids.song.SongManager;
@@ -95,6 +96,14 @@ public final class CommonEvents {
         return null;
     }
 
+    /** A Reacted Sting Raid's own hit: her arm weapon in melee, or an arrow from her launcher arm. */
+    @Nullable
+    private static StingRaidEntity stingHit(DamageSource src) {
+        if (src.getEntity() instanceof StingRaidEntity sting && sting.isReacted()
+                && (src.getDirectEntity() == sting || src.getDirectEntity() instanceof AbstractArrow)) return sting;
+        return null;
+    }
+
     /**
      * Ring advantage and before-damage effects. Fires for every damage event, so it leaves on the cheapest checks:
      * client side, no living attacker, then no Edel weapon and not an Edel Raid's own melee.
@@ -107,11 +116,14 @@ public final class CommonEvents {
         if (target instanceof ServerPlayer warded && !src.is(DamageTypes.THORNS)) SongManager.onWardedHit(warded, attacker);
 
         EdelRaidData weapon = weaponHit(src);
+        StingRaidEntity sting = null;
         ResourceLocation attackerElement;
         if (weapon != null) {
             attackerElement = weapon.element();
         } else if (attacker instanceof EdelRaidEntity raid && src.getDirectEntity() == raid) {
             attackerElement = raid.getElementId();
+        } else if ((sting = stingHit(src)) != null) {
+            attackerElement = sting.getElementId();
         } else {
             return;
         }
@@ -123,7 +135,7 @@ public final class CommonEvents {
             float m = Elements.multiplier(atk, Elements.element(access, defender.getElementId()));
             if (m != 1f) event.setAmount(event.getAmount() * m);
         }
-        if (weapon != null) OnHitEffects.incoming(atk.onHit(), event, attacker);
+        if (weapon != null || sting != null) OnHitEffects.incoming(atk.onHit(), event, attacker);
     }
 
     /** After-damage effects; same filter as above, and only when damage actually landed. */
@@ -131,10 +143,18 @@ public final class CommonEvents {
         LivingEntity target = event.getEntity();
         if (target.level().isClientSide) return;
         EdelRaidData weapon = weaponHit(event.getSource());
-        if (weapon == null || !(event.getSource().getEntity() instanceof LivingEntity attacker)) return;
-        Element atk = Elements.element(target.level().registryAccess(), weapon.element());
+        if (!(event.getSource().getEntity() instanceof LivingEntity attacker)) return;
+        ResourceLocation element;
+        if (weapon != null) {
+            element = weapon.element();
+        } else {
+            StingRaidEntity sting = stingHit(event.getSource());
+            if (sting == null) return;
+            element = sting.getElementId();
+        }
+        Element atk = Elements.element(target.level().registryAccess(), element);
         if (atk != null) OnHitEffects.afterHit(atk.onHit(), target, attacker, event.getNewDamage());
-        if (attacker instanceof ServerPlayer p) SongManager.onWeaponHit(p);
+        if (weapon != null && attacker instanceof ServerPlayer p) SongManager.onWeaponHit(p);
     }
 
     private static void onCritical(CriticalHitEvent event) {
@@ -201,7 +221,8 @@ public final class CommonEvents {
         }
     }
 
-    private static void gainBond(ServerPlayer killer) {
+    /** Bond for the Edel Raid the player holds, as for a hostile kill (also used when a hunter's Sting Raid is subdued). */
+    public static void gainBond(ServerPlayer killer) {
         int gain = Config.BOND_PER_KILL.get();
         if (gain <= 0) return;
         ItemStack weapon = killer.getMainHandItem();

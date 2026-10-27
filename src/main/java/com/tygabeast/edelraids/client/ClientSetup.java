@@ -45,5 +45,6 @@ public final class ClientSetup {
 
     private static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(ModEntities.EDEL_RAID.get(), EdelRaidRenderer::new);
+        event.registerEntityRenderer(ModEntities.STING_RAID.get(), StingRaidRenderer::new);
     }
 }

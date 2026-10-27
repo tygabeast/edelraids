@@ -1,5 +1,6 @@
 {
   "attack_damage": 3.0,
   "attack_speed": 1.0,
-  "ranged": true
+  "ranged": true,
+  "sting_arm": "launcher"
 }

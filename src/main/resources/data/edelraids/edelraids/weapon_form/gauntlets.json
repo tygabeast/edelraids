@@ -3,5 +3,6 @@
   "attack_speed": 2.4,
   "reach_bonus": -1.0,
   "better_combat_preset": "bettercombat:fist",
-  "paired": true
+  "paired": true,
+  "sting_arm": "heavy"
 }

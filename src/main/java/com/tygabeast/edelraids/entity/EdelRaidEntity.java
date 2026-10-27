@@ -298,6 +298,7 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
 
     private void serverTick() {
         if (edelId == null) rollIdentity(random);
+        if (getTarget() != null && StingRaidEntity.isOutOfFight(getTarget())) setTarget(null);
 
         int t = getTransformTicks();
         if (t > 0) {
@@ -397,7 +398,8 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
 
     @Override
     public boolean wantsToAttack(LivingEntity target, LivingEntity owner) {
-        return !isBusy() && !(target instanceof EdelRaidEntity other && other.isOwnedBy(owner)) && super.wantsToAttack(target, owner);
+        return !isBusy() && !StingRaidEntity.isOutOfFight(target)
+                && !(target instanceof TamableAnimal other && other.isOwnedBy(owner)) && super.wantsToAttack(target, owner);
     }
 
     // ---------------------------------------------------------------- damage, death, removal
