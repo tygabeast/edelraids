@@ -6,9 +6,6 @@ import com.tygabeast.edelraids.bond.EdelRegistry;
 import com.tygabeast.edelraids.bond.ReactManager;
 import com.tygabeast.edelraids.client.EdelWeaponRenderer;
 import com.tygabeast.edelraids.data.EdelRaidData;
-import com.tygabeast.edelraids.data.Element;
-import com.tygabeast.edelraids.data.Elements;
-import com.tygabeast.edelraids.data.OnHitEffects;
 import com.tygabeast.edelraids.registry.ModComponents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
@@ -17,6 +14,13 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.Arrow;
+import net.minecraft.world.item.BowItem;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
@@ -59,8 +63,8 @@ public class EdelWeaponItem extends Item implements GeoItem {
     }
 
     @Nullable
-    public static EdelRaidData data(ItemStack stack) {
-        return stack.get(ModComponents.EDEL_RAID.get());
+    public static EdelRaidData data(@Nullable ItemStack stack) {
+        return stack == null ? null : stack.get(ModComponents.EDEL_RAID.get());
     }
 
     public static void playFormAnimation(ServerPlayer player, ItemStack stack, ServerLevel level) {
@@ -74,7 +78,11 @@ public class EdelWeaponItem extends Item implements GeoItem {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
-        if (!player.isShiftKeyDown()) return InteractionResultHolder.pass(stack);
+        if (!player.isShiftKeyDown()) {
+            if (!stack.has(ModComponents.RANGED.get())) return InteractionResultHolder.pass(stack);
+            player.startUsingItem(hand);
+            return InteractionResultHolder.consume(stack);
+        }
         if (player instanceof ServerPlayer sp) {
             ItemStack taken = stack.copy();
             player.setItemInHand(hand, ItemStack.EMPTY);
@@ -83,15 +91,43 @@ public class EdelWeaponItem extends Item implements GeoItem {
         return InteractionResultHolder.sidedSuccess(ItemStack.EMPTY, level.isClientSide);
     }
 
-    // ---------------------------------------------------------------- combat
+    // ---------------------------------------------------------------- bow form: draws like a bow, needs no arrows
 
     @Override
+    public int getUseDuration(ItemStack stack, LivingEntity entity) {
+        return stack.has(ModComponents.RANGED.get()) ? 72000 : 0;
+    }
+
+    @Override
+    public UseAnim getUseAnimation(ItemStack stack) {
+        return stack.has(ModComponents.RANGED.get()) ? UseAnim.BOW : UseAnim.NONE;
+    }
+
+    @Override
+    public void releaseUsing(ItemStack stack, Level level, LivingEntity shooter, int timeLeft) {
+        if (!stack.has(ModComponents.RANGED.get()) || !(level instanceof ServerLevel sl)) return;
+        float power = BowItem.getPowerForTime(getUseDuration(stack, shooter) - timeLeft);
+        if (power < 0.1f) return;
+        EdelRaidData d = data(stack);
+        Arrow arrow = new Arrow(sl, shooter, new ItemStack(Items.ARROW), stack);
+        arrow.pickup = AbstractArrow.Pickup.CREATIVE_ONLY;
+        double bonus = d == null ? 0.0 : (d.quality() - 1) * Config.QUALITY_DAMAGE.get() + (d.awakened() ? Config.AWAKEN_DAMAGE.get() : 0.0);
+        arrow.setBaseDamage(arrow.getBaseDamage() + bonus * 0.5);
+        arrow.setCritArrow(power >= 1f);
+        arrow.shootFromRotation(shooter, shooter.getXRot(), shooter.getYRot(), 0f, power * 3f, 1f);
+        sl.addFreshEntity(arrow);
+        sl.playSound(null, shooter.getX(), shooter.getY(), shooter.getZ(), SoundEvents.ARROW_SHOOT, SoundSource.PLAYERS,
+                1f, 1f / (sl.getRandom().nextFloat() * 0.4f + 1.2f) + power * 0.5f);
+        int wear = Config.WEAR_PER_HIT.get();
+        if (wear > 0) stack.hurtAndBreak(wear, shooter, shooter.getUsedItemHand() == InteractionHand.OFF_HAND
+                ? EquipmentSlot.OFFHAND : EquipmentSlot.MAINHAND);
+    }
+
+    // ---------------------------------------------------------------- melee (element effects live in CommonEvents)
+
+    /** Must return true: vanilla only calls postHurtEnemy (where wear is applied) when this does. */
+    @Override
     public boolean hurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
-        if (!attacker.level().isClientSide) {
-            EdelRaidData d = data(stack);
-            Element el = d == null ? null : Elements.element(attacker.level().registryAccess(), d.element());
-            if (el != null) OnHitEffects.apply(el.onHit(), target, attacker);
-        }
         return true;
     }
 
@@ -119,10 +155,10 @@ public class EdelWeaponItem extends Item implements GeoItem {
         return !player.isCreative();
     }
 
+    /** Forms that sweep carry a marker component, so this per-swing check needs no registry lookup. */
     @Override
     public boolean canPerformAction(ItemStack stack, ItemAbility ability) {
-        // Phase 1 ships only the longsword; phase 2 makes this follow each form's "sweeps" flag.
-        return ItemAbilities.DEFAULT_SWORD_ACTIONS.contains(ability);
+        return stack.has(ModComponents.SWEEPS.get()) && ItemAbilities.DEFAULT_SWORD_ACTIONS.contains(ability);
     }
 
     @Override
@@ -154,7 +190,7 @@ public class EdelWeaponItem extends Item implements GeoItem {
         EdelRegistry reg = EdelRegistry.get(p.getServer());
         EdelRegistry.Entry entry = reg.get(d.id());
         if (entry == null) {
-            reg.setHeld(d.id(), p.getUUID(), d.stamp());
+            reg.setHeld(d.id(), p.getUUID(), d.stamp(), d);
             return;
         }
         if (!entry.held() || entry.stamp() != d.stamp()) {

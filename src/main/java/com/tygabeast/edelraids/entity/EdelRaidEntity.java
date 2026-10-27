@@ -8,6 +8,7 @@ import com.tygabeast.edelraids.data.EdelRaidData;
 import com.tygabeast.edelraids.data.Element;
 import com.tygabeast.edelraids.data.Elemental;
 import com.tygabeast.edelraids.data.Elements;
+import com.tygabeast.edelraids.data.WeaponForm;
 import com.tygabeast.edelraids.registry.ModRegistries;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -58,6 +59,7 @@ import software.bernie.geckolib.animation.AnimationController;
 import software.bernie.geckolib.animation.RawAnimation;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -147,28 +149,47 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
         return result;
     }
 
-    /** A brand-new Edel Raid: element, a form from that element's pool, quality tier and a name. */
+    /** A brand-new Edel Raid: a rollable element, a form from that element's pool, quality tier and a name. */
     private void rollIdentity(RandomSource random) {
-        edelId = UUID.randomUUID();
         Registry<Element> elements = level().registryAccess().registryOrThrow(ModRegistries.ELEMENT);
-        Optional<Holder.Reference<Element>> pickedElement = elements.getRandom(random);
-        if (pickedElement.isPresent()) {
-            element = pickedElement.get().key().location();
-            Element e = pickedElement.get().value();
-            if (!e.forms().isEmpty()) {
-                form = e.forms().get(random.nextInt(e.forms().size()));
+        List<Holder.Reference<Element>> pool = elements.holders().filter(h -> h.value().rollable()).toList();
+        if (pool.isEmpty()) pool = elements.holders().toList();
+        ResourceLocation el = element;
+        ResourceLocation fo = form;
+        if (!pool.isEmpty()) {
+            Holder.Reference<Element> picked = pool.get(random.nextInt(pool.size()));
+            el = picked.key().location();
+            List<ResourceLocation> forms = picked.value().forms();
+            if (!forms.isEmpty()) {
+                fo = forms.get(random.nextInt(forms.size()));
             } else {
-                level().registryAccess().registryOrThrow(ModRegistries.WEAPON_FORM).getRandom(random)
-                        .ifPresent(f -> form = f.key().location());
+                Optional<Holder.Reference<WeaponForm>> any = level().registryAccess().registryOrThrow(ModRegistries.WEAPON_FORM).getRandom(random);
+                if (any.isPresent()) fo = any.get().key().location();
             }
         }
         int roll = random.nextInt(10);
-        quality = roll < 6 ? 1 : roll < 9 ? 2 : 3;
-        edelName = NAME_HEADS[random.nextInt(NAME_HEADS.length)] + NAME_TAILS[random.nextInt(NAME_TAILS.length)];
+        setIdentity(el, fo, roll < 6 ? 1 : roll < 9 ? 2 : 3,
+                NAME_HEADS[random.nextInt(NAME_HEADS.length)] + NAME_TAILS[random.nextInt(NAME_TAILS.length)]);
+    }
+
+    /** Give her a fresh identity (new id, stamp 1) and register her in the world. Used by rolls and /edelraids create. */
+    public void setIdentity(ResourceLocation newElement, ResourceLocation newForm, int newQuality, String name) {
+        edelId = UUID.randomUUID();
+        element = newElement;
+        form = newForm;
+        quality = Math.max(1, Math.min(10, newQuality));
+        edelName = name;
         setCustomName(Component.literal(edelName));
+        bond = 0;
+        awakened = false;
         stamp = 1L;
         refreshColor();
         if (level() instanceof ServerLevel sl) EdelRegistry.get(sl.getServer()).setWorld(edelId, getUUID(), stamp);
+    }
+
+    /** A random name for /edelraids create when none is given. */
+    public static String randomName(RandomSource random) {
+        return NAME_HEADS[random.nextInt(NAME_HEADS.length)] + NAME_TAILS[random.nextInt(NAME_TAILS.length)];
     }
 
     public EdelRaidData toData() {

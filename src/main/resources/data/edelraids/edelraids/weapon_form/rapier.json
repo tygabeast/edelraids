@@ -1,0 +1,6 @@
+{
+  "attack_damage": 6.0,
+  "attack_speed": 2.0,
+  "reach_bonus": 0.5,
+  "better_combat_preset": "bettercombat:rapier"
+}

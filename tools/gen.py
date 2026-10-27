@@ -234,6 +234,217 @@ def longsword_geo():
         'bones': bones}]}
 
 
+# ------------------------------------------------------------------ Other weapon forms (placeholders, part lists)
+# Every form is modelled upright with the hand's grip point at the origin, like the longsword, so they all share the
+# item display transforms. Each has a "gem" bone (tinted by element) and an "awakened" bone (shown at high bond).
+
+WOOD = (122, 88, 60, 255)
+DARK = (92, 100, 110, 255)
+STRING = (232, 230, 220, 255)
+
+COLORS = {'grip': GRIP, 'guard': GUARD, 'blade': STEEL, 'edge': STEEL_EDGE, 'gem': GEM, 'wing': WING,
+          'wood': WOOD, 'dark': DARK, 'string': STRING}
+
+# bone -> (parent, [(origin, size, color role), ...])
+FORM_PARTS = {
+    'greatsword': {
+        'grip': ('root', [([-1.5, -2, -1.5], [3, 2, 3], 'guard'), ([-0.75, 0, -0.75], [1.5, 7, 1.5], 'grip')]),
+        'guard': ('root', [([-4.5, 7, -1.5], [9, 1.5, 3], 'guard')]),
+        'gem': ('guard', [([-1, 7, -2], [2, 2, 1], 'gem')]),
+        'blade': ('root', [([-2, 8.5, -0.5], [4, 20, 1], 'blade'), ([-1, 28.5, -0.5], [2, 3, 1], 'edge')]),
+        'awakened': ('blade', [([-4, 10, -0.5], [2, 10, 1], 'wing'), ([2, 10, -0.5], [2, 10, 1], 'wing')]),
+    },
+    'spear': {
+        'grip': ('root', [([-1, -6, -1], [2, 1, 2], 'dark'), ([-0.5, -5, -0.5], [1, 27, 1], 'wood')]),
+        'guard': ('root', [([-1, 20, -1], [2, 1.5, 2], 'guard')]),
+        'gem': ('guard', [([-0.5, 20.25, -1.5], [1, 1, 0.5], 'gem')]),
+        'blade': ('root', [([-1.5, 21.5, -0.5], [3, 5, 1], 'blade'), ([-0.5, 26.5, -0.5], [1, 2, 1], 'edge')]),
+        'awakened': ('blade', [([-3, 20.5, -0.25], [1.5, 3, 0.5], 'wing'), ([1.5, 20.5, -0.25], [1.5, 3, 0.5], 'wing')]),
+    },
+    'twin_blades': {
+        'grip': ('root', [([-0.5, -3, -0.5], [1, 6, 1], 'grip')]),
+        'guard': ('root', [([-2, 3, -1], [4, 1, 2], 'guard'), ([-2, -4, -1], [4, 1, 2], 'guard')]),
+        'gem': ('guard', [([-1, 2.75, -1.5], [2, 1.5, 0.5], 'gem')]),
+        'blade': ('root', [([-1, 4, -0.5], [2, 11, 1], 'blade'), ([-0.5, 15, -0.5], [1, 2, 1], 'edge'),
+                           ([-1, -15, -0.5], [2, 11, 1], 'blade'), ([-0.5, -17, -0.5], [1, 2, 1], 'edge')]),
+        'awakened': ('blade', [([1, 11, -0.25], [2, 4, 0.5], 'wing'), ([-3, -15, -0.25], [2, 4, 0.5], 'wing')]),
+    },
+    'scythe': {
+        'grip': ('root', [([-0.5, -6, -0.5], [1, 28, 1], 'wood'), ([-1, 22, -1], [2, 1, 2], 'dark')]),
+        'guard': ('root', [([-1, 18, -1], [2, 1, 2], 'dark')]),
+        'gem': ('guard', [([-0.75, 19.5, -1.25], [1.5, 1.5, 0.5], 'gem')]),
+        'blade': ('root', [([-6, 19.5, -0.25], [6, 2.5, 0.5], 'blade'), ([-10, 18.5, -0.25], [4, 2, 0.5], 'blade'),
+                           ([-13, 16.5, -0.25], [3, 2, 0.5], 'edge')]),
+        'awakened': ('blade', [([-8, 21, -0.25], [2, 2, 0.5], 'wing'), ([-4, 22, -0.25], [2, 2, 0.5], 'wing')]),
+    },
+    'axe': {
+        'grip': ('root', [([-0.5, -1, -0.5], [1, 16, 1], 'wood'), ([-0.75, 15, -0.75], [1.5, 1, 1.5], 'dark')]),
+        'guard': ('root', [([0.5, 11.5, -0.5], [2, 2, 1], 'dark')]),
+        'gem': ('guard', [([-3, 11.75, -1], [1.5, 1.5, 0.5], 'gem')]),
+        'blade': ('root', [([-5, 10, -0.5], [5, 5, 1], 'blade'), ([-6, 9, -0.5], [1, 7, 1], 'edge')]),
+        'awakened': ('blade', [([2.5, 9.5, -0.25], [1.5, 6, 0.5], 'wing')]),
+    },
+    'war_hammer': {
+        'grip': ('root', [([-0.75, -2, -0.75], [1.5, 1, 1.5], 'dark'), ([-0.5, -1, -0.5], [1, 15, 1], 'wood')]),
+        'guard': ('root', [([-4.5, 14.5, -1.5], [0.5, 4, 3], 'dark'), ([4, 14.5, -1.5], [0.5, 4, 3], 'dark')]),
+        'gem': ('guard', [([-1, 15.5, -2.5], [2, 2, 0.5], 'gem')]),
+        'blade': ('root', [([-4, 14, -2], [8, 5, 4], 'blade')]),
+        'awakened': ('blade', [([-0.5, 19, -0.5], [1, 3, 1], 'wing'), ([-2, 13, -2.5], [4, 1, 5], 'wing')]),
+    },
+    'rapier': {
+        'grip': ('root', [([-0.75, -1.5, -0.75], [1.5, 1.5, 1.5], 'guard'), ([-0.5, 0, -0.5], [1, 4, 1], 'grip'),
+                          ([1, 0, -0.25], [0.5, 4, 0.5], 'guard')]),
+        'guard': ('root', [([-1.5, 4, -1.5], [3, 1.5, 3], 'guard')]),
+        'gem': ('guard', [([-0.5, 4.25, -2], [1, 1, 0.5], 'gem')]),
+        'blade': ('root', [([-0.25, 5.5, -0.25], [0.5, 18, 0.5], 'blade')]),
+        'awakened': ('blade', [([-3.5, 4.5, -0.25], [2, 0.5, 0.5], 'wing'), ([1.5, 4.5, -0.25], [2, 0.5, 0.5], 'wing')]),
+    },
+    'gauntlets': {
+        'grip': ('root', [([-2.5, -4.5, -2.5], [5, 3, 5], 'dark')]),
+        'guard': ('root', [([-2.25, 3.5, -2.25], [4.5, 1, 4.5], 'guard')]),
+        'gem': ('guard', [([-1, 0.5, -2.5], [2, 2, 0.5], 'gem')]),
+        'blade': ('root', [([-2, -1.5, -2], [4, 5, 4], 'blade')]),
+        'awakened': ('blade', [([-2, 4.5, -1], [1, 1.5, 1], 'wing'), ([-0.5, 4.5, -1], [1, 1.5, 1], 'wing'),
+                               ([1, 4.5, -1], [1, 1.5, 1], 'wing')]),
+    },
+    'bow': {
+        'grip': ('root', [([-0.5, -2, -0.5], [1, 4, 1], 'grip')]),
+        'guard': ('root', [([-2.25, -13, -0.1], [0.2, 26, 0.2], 'string')]),
+        'gem': ('grip', [([-0.75, -0.75, -1], [1.5, 1.5, 0.5], 'gem')]),
+        'blade': ('root', [([-0.5, 2, -0.5], [1, 5, 1], 'wood'), ([-1.5, 7, -0.5], [1, 4, 1], 'wood'),
+                           ([-2.5, 11, -0.5], [1, 3, 1], 'wood'), ([-0.5, -7, -0.5], [1, 5, 1], 'wood'),
+                           ([-1.5, -11, -0.5], [1, 4, 1], 'wood'), ([-2.5, -14, -0.5], [1, 3, 1], 'wood')]),
+        'awakened': ('blade', [([-4, 12, -0.25], [2, 3, 0.5], 'wing'), ([-4, -15, -0.25], [2, 3, 0.5], 'wing')]),
+    },
+}
+
+
+def pack_form(name, parts, size=64):
+    """Shelf-pack box-UV footprints into a size x size sheet; returns (geo, pixels)."""
+    px = canvas(size, size)
+    x = y = shelf = 0
+    bones = [{'name': 'root', 'pivot': [0, 0, 0]}]
+    for bone in ('grip', 'guard', 'gem', 'blade', 'awakened'):
+        parent, cubes = parts[bone]
+        out = []
+        for origin, sz, role in cubes:
+            sx, sy, sz_ = (max(1, math.ceil(v)) for v in sz)
+            w, h = 2 * (sx + sz_), sz_ + sy
+            if x + w > size:
+                x, y, shelf = 0, y + shelf, 0
+            if y + h > size:
+                raise ValueError(f'{name}: texture sheet too small')
+            col = COLORS[role]
+            box_uv(px, x, y, sx, sy, sz_, all_faces(col, 1, 1, 1, 1) if role == 'gem' else all_faces(col, 1.05, 0.85, 0.95, 0.9))
+            out.append(cube(origin, sz, [x, y]))
+            x += w
+            shelf = max(shelf, h)
+        first = cubes[0][0]
+        bones.append({'name': bone, 'parent': parent, 'pivot': [0, first[1], 0], 'cubes': out})
+    geo = {'format_version': '1.12.0', 'minecraft:geometry': [{
+        'description': {'identifier': 'geometry.edel_weapon_' + name, 'texture_width': size, 'texture_height': size,
+                        'visible_bounds_width': 3, 'visible_bounds_height': 4, 'visible_bounds_offset': [0, 1, 0]},
+        'bones': bones}]}
+    return geo, px
+
+
+# ------------------------------------------------------------------ elements and forms (datapack registries)
+# Glittering rings: each element beats the next one in its ring (position + 1) and loses to the one before.
+# Ring 4 never appears in the series; it is this mod's own and only found in Edel Garden (not rollable).
+
+RING_FORMS = {
+    1: ['longsword', 'greatsword', 'spear', 'axe', 'war_hammer', 'bow'],
+    2: ['rapier', 'twin_blades', 'longsword', 'war_hammer', 'gauntlets', 'bow'],
+    3: ['scythe', 'twin_blades', 'spear', 'rapier', 'gauntlets', 'longsword'],
+    4: ['greatsword', 'spear', 'axe', 'scythe', 'war_hammer', 'bow'],
+}
+
+# id, display name, ring, position, color, on-hit type, strength
+ELEMENTS = [
+    ('earth', 'Earth', 1, 0, '#A9773E', 'shatter', 1.0),
+    ('wind', 'Wind', 1, 1, '#4FC9A0', 'knockback', 0.5),
+    ('fire', 'Fire', 1, 2, '#F26B21', 'ignite', 3.0),
+    ('water', 'Water', 1, 3, '#2F80ED', 'slow', 2.0),
+    ('greenery', 'Greenery', 1, 4, '#43A047', 'root', 1.0),
+    ('wisdom', 'Wisdom', 1, 5, '#5E35B1', 'insight', 0.2),
+    ('beauty', 'Beauty', 2, 0, '#F48FB1', 'charm', 0.3),
+    ('sound', 'Sound', 2, 1, '#FFB300', 'shield_break', 1.0),
+    ('shield', 'Shield', 2, 2, '#5C7FA3', 'ward', 1.0),
+    ('sword', 'Sword', 2, 3, '#D7DEE6', 'pierce', 0.4),
+    ('love', 'Love', 2, 4, '#E2366F', 'lifesteal', 0.1),
+    ('void', 'Void', 2, 5, '#22103A', 'strip', 1.0),
+    ('light', 'Light', 3, 0, '#FFF1A8', 'smite', 0.5),
+    ('darkness', 'Darkness', 3, 1, '#2B2B33', 'blind', 2.0),
+    ('movement', 'Movement', 3, 2, '#9B1B30', 'haste', 2.0),
+    ('quiet', 'Quiet', 3, 3, '#9FB0A8', 'silence', 3.0),
+    ('life', 'Life', 3, 4, '#FFAB91', 'regen', 3.0),
+    ('death', 'Death', 3, 5, '#4B2C3F', 'wither', 3.0),
+    ('thunder', 'Thunder', 4, 0, '#FFD60A', 'chain', 3.0),
+    ('steel', 'Steel', 4, 1, '#7D8A96', 'flat_damage', 1.5),
+    ('ice', 'Ice', 4, 2, '#A5F2FF', 'freeze', 60.0),
+    ('time', 'Time', 4, 3, '#C9A227', 'timeworn', 3.0),
+    ('dream', 'Dream', 4, 4, '#CE93D8', 'drowse', 4.0),
+    ('star', 'Star', 4, 5, '#8C9EFF', 'starfall', 0.5),
+]
+
+# id, display name, damage, speed, sweeps, reach bonus, ranged, Better Combat preset
+FORMS = [
+    ('longsword', 'Longsword', 7.0, 1.6, True, 0.0, False, 'bettercombat:sword'),
+    ('greatsword', 'Greatsword', 9.0, 1.0, True, 0.5, False, 'bettercombat:claymore'),
+    ('spear', 'Spear', 7.5, 1.2, False, 1.5, False, 'bettercombat:spear'),
+    ('twin_blades', 'Twin Blades', 6.5, 1.8, True, 0.0, False, 'bettercombat:twin_blade'),
+    ('scythe', 'Scythe', 8.5, 1.1, True, 1.0, False, 'bettercombat:scythe'),
+    ('axe', 'Axe', 9.0, 0.9, False, 0.0, False, 'bettercombat:axe'),
+    ('war_hammer', 'War Hammer', 10.0, 0.8, False, 0.0, False, 'bettercombat:hammer'),
+    ('rapier', 'Rapier', 6.0, 2.0, False, 0.5, False, 'bettercombat:rapier'),
+    ('gauntlets', 'Gauntlets', 5.0, 2.4, False, -1.0, False, 'bettercombat:fist'),
+    ('bow', 'Bow', 3.0, 1.0, False, 0.0, True, None),
+]
+
+# Custom mob effects: id, display name, icon color
+EFFECTS = [
+    ('shattered', 'Shattered', (169, 119, 62, 255)),
+    ('rooted', 'Rooted', (67, 160, 71, 255)),
+    ('warded', 'Warded', (92, 127, 163, 255)),
+    ('silenced', 'Silenced', (159, 176, 168, 255)),
+    ('timeworn', 'Timeworn', (201, 162, 39, 255)),
+]
+
+
+def effect_icon(col):
+    px = canvas(18, 18)
+    for yy in range(18):
+        for xx in range(18):
+            d = math.hypot(xx - 8.5, yy - 8.5)
+            if d <= 7.5:
+                px[yy][xx] = shade(col, 1.15 - d / 15)
+            elif d <= 8.5:
+                px[yy][xx] = shade(col, 0.55)
+    return px
+
+
+def write_registries():
+    base = os.path.join(DATA, MODID, MODID)
+    for el, _, ring, pos, color, hit, strength in ELEMENTS:
+        obj = {'ring': ring, 'position': pos, 'color': color,
+               'forms': [MODID + ':' + f for f in RING_FORMS[ring]],
+               'on_hit': {'type': MODID + ':' + hit, 'strength': strength}}
+        if ring == 4:
+            obj['rollable'] = False
+        write_json(os.path.join(base, 'element', el + '.json'), obj)
+    for fid, _, dmg, spd, sweeps, reach, ranged, preset in FORMS:
+        obj = {'attack_damage': dmg, 'attack_speed': spd}
+        if sweeps:
+            obj['sweeps'] = True
+        if reach:
+            obj['reach_bonus'] = reach
+        if ranged:
+            obj['ranged'] = True
+        if preset:
+            obj['better_combat_preset'] = preset
+        write_json(os.path.join(base, 'weapon_form', fid + '.json'), obj)
+
+
 def weapon_animations():
     return {'format_version': '1.8.0', 'animations': {
         'animation.edel_weapon.form': {'loop': False, 'animation_length': 0.5, 'bones': {
@@ -320,8 +531,6 @@ LANG = {
     'item.edelraids.edel_weapon': 'Edel Raid Weapon',
     'item.edelraids.edel_weapon.named': "%s's %s",
     'item.edelraids.edel_raid_spawn_egg': 'Edel Raid Spawn Egg',
-    'edelraids.element.edelraids.wind': 'Wind',
-    'edelraids.form.edelraids.longsword': 'Longsword',
     'edelraids.quality.1': 'Third Class',
     'edelraids.quality.2': 'Second Class',
     'edelraids.quality.3': 'First Class',
@@ -347,7 +556,17 @@ LANG = {
     'command.edelraids.released': '%s is no longer bonded to you.',
     'command.edelraids.info': '%s: %s %s, %s, bond %s/%s, %s',
     'command.edelraids.bond_set': 'Bond set to %s.',
+    'command.edelraids.created': 'Created %s: %s %s, %s.',
+    'command.edelraids.unknown_element': 'Unknown element: %s',
+    'command.edelraids.unknown_form': 'Unknown weapon form: %s',
+    'message.edelraids.recovered_lost': '%s was lost from your inventory and has reformed beside you.',
 }
+for _el, _name, *_ in ELEMENTS:
+    LANG['edelraids.element.edelraids.' + _el] = _name
+for _fid, _name, *_ in FORMS:
+    LANG['edelraids.form.edelraids.' + _fid] = _name
+for _eid, _name, _ in EFFECTS:
+    LANG['effect.edelraids.' + _eid] = _name
 
 
 def main():
@@ -358,12 +577,19 @@ def main():
     write_png(os.path.join(ASSETS, 'textures', 'item', 'weapon', 'longsword.png'), 32, 32, longsword_texture())
     write_json(os.path.join(ASSETS, 'geo', 'item', 'weapon', 'longsword.geo.json'), longsword_geo())
     write_json(os.path.join(ASSETS, 'animations', 'item', 'edel_weapon.animation.json'), weapon_animations())
+    for name, parts in FORM_PARTS.items():
+        geo, px = pack_form(name, parts)
+        write_json(os.path.join(ASSETS, 'geo', 'item', 'weapon', name + '.geo.json'), geo)
+        write_png(os.path.join(ASSETS, 'textures', 'item', 'weapon', name + '.png'), 64, 64, px)
+    for eid, _, col in EFFECTS:
+        write_png(os.path.join(ASSETS, 'textures', 'mob_effect', eid + '.png'), 18, 18, effect_icon(col))
+    write_registries()
 
     write_json(os.path.join(ASSETS, 'models', 'item', 'edel_weapon.json'), weapon_item_model())
     write_json(os.path.join(ASSETS, 'models', 'item', 'edel_raid_spawn_egg.json'), {'parent': 'minecraft:item/template_spawn_egg'})
     write_json(os.path.join(ASSETS, 'lang', 'en_us.json'), dict(sorted(LANG.items())))
 
-    for tag in ('sword', 'sharp_weapon', 'weapon', 'fire_aspect', 'durability'):
+    for tag in ('sword', 'sharp_weapon', 'weapon', 'fire_aspect', 'durability', 'bow'):
         write_json(os.path.join(DATA, 'minecraft', 'tags', 'item', 'enchantable', tag + '.json'),
                    {'replace': False, 'values': [MODID + ':edel_weapon']})
     print('generated resources in', os.path.normpath(ROOT))

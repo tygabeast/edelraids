@@ -1,0 +1,17 @@
+{
+  "ring": 2,
+  "position": 4,
+  "color": "#E2366F",
+  "forms": [
+    "edelraids:rapier",
+    "edelraids:twin_blades",
+    "edelraids:longsword",
+    "edelraids:war_hammer",
+    "edelraids:gauntlets",
+    "edelraids:bow"
+  ],
+  "on_hit": {
+    "type": "edelraids:lifesteal",
+    "strength": 0.1
+  }
+}

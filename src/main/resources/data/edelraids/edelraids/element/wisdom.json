@@ -1,0 +1,17 @@
+{
+  "ring": 1,
+  "position": 5,
+  "color": "#5E35B1",
+  "forms": [
+    "edelraids:longsword",
+    "edelraids:greatsword",
+    "edelraids:spear",
+    "edelraids:axe",
+    "edelraids:war_hammer",
+    "edelraids:bow"
+  ],
+  "on_hit": {
+    "type": "edelraids:insight",
+    "strength": 0.2
+  }
+}

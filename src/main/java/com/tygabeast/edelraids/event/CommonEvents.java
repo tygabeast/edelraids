@@ -1,6 +1,19 @@
 package com.tygabeast.edelraids.event;
 
 import com.tygabeast.edelraids.Config;
+import com.tygabeast.edelraids.bond.EdelRegistry;
+import com.tygabeast.edelraids.data.Element;
+import com.tygabeast.edelraids.data.OnHitEffects;
+import com.tygabeast.edelraids.registry.ModEffects;
+import net.minecraft.world.damagesource.DamageTypes;
+import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
+import net.neoforged.neoforge.event.entity.player.CriticalHitEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import org.jetbrains.annotations.Nullable;
+import java.util.List;
 import com.tygabeast.edelraids.bond.ReactManager;
 import com.tygabeast.edelraids.command.EdelCommands;
 import com.tygabeast.edelraids.data.EdelRaidData;
@@ -42,6 +55,10 @@ public final class CommonEvents {
 
     public static void register(IEventBus bus) {
         bus.addListener(CommonEvents::onIncomingDamage);
+        bus.addListener(CommonEvents::onDamagePost);
+        bus.addListener(CommonEvents::onCritical);
+        bus.addListener(CommonEvents::onEntityJoin);
+        bus.addListener(CommonEvents::onLogin);
         bus.addListener(EventPriority.HIGHEST, CommonEvents::onDeath);
         bus.addListener(CommonEvents::onContainerClose);
         bus.addListener(CommonEvents::onEntityInteract);
@@ -50,25 +67,92 @@ public final class CommonEvents {
         bus.addListener(EdelCommands::register);
     }
 
-    /** Glittering-ring advantage. Fires for every damage event, so non-elemental targets leave on the first check. */
-    private static void onIncomingDamage(LivingIncomingDamageEvent event) {
-        if (!(event.getEntity() instanceof Elemental defender)) return;
-        DamageSource src = event.getSource();
-        Entity attacker = src.getEntity();
-        if (attacker == null || src.getDirectEntity() != attacker) return;
-
-        ResourceLocation attackerElement = null;
-        if (attacker instanceof EdelRaidEntity raid) {
-            attackerElement = raid.getElementId();
-        } else if (attacker instanceof Player p) {
-            EdelRaidData d = EdelWeaponItem.data(p.getMainHandItem());
-            if (d != null) attackerElement = d.element();
+    /**
+     * The Edel Raid weapon behind a hit, for melee by a player or an arrow fired from her bow form; null otherwise.
+     * Other damage (thorns, Thunder's chained magic, fire) is deliberately excluded so effects never re-trigger.
+     */
+    @Nullable
+    private static EdelRaidData weaponHit(DamageSource src) {
+        Entity direct = src.getDirectEntity();
+        if (direct instanceof AbstractArrow arrow) return EdelWeaponItem.data(arrow.getWeaponItem());
+        if (direct instanceof Player p && src.getEntity() == p && src.is(DamageTypes.PLAYER_ATTACK)) {
+            return EdelWeaponItem.data(p.getMainHandItem());
         }
-        if (attackerElement == null) return;
+        return null;
+    }
 
-        RegistryAccess access = event.getEntity().level().registryAccess();
-        float m = Elements.multiplier(Elements.element(access, attackerElement), Elements.element(access, defender.getElementId()));
-        if (m != 1f) event.setAmount(event.getAmount() * m);
+    /**
+     * Ring advantage and before-damage effects. Fires for every damage event, so it leaves on the cheapest checks:
+     * client side, no living attacker, then no Edel weapon and not an Edel Raid's own melee.
+     */
+    private static void onIncomingDamage(LivingIncomingDamageEvent event) {
+        LivingEntity target = event.getEntity();
+        if (target.level().isClientSide) return;
+        DamageSource src = event.getSource();
+        if (!(src.getEntity() instanceof LivingEntity attacker)) return;
+
+        EdelRaidData weapon = weaponHit(src);
+        ResourceLocation attackerElement;
+        if (weapon != null) {
+            attackerElement = weapon.element();
+        } else if (attacker instanceof EdelRaidEntity raid && src.getDirectEntity() == raid) {
+            attackerElement = raid.getElementId();
+        } else {
+            return;
+        }
+
+        RegistryAccess access = target.level().registryAccess();
+        Element atk = Elements.element(access, attackerElement);
+        if (atk == null) return;
+        if (target instanceof Elemental defender) {
+            float m = Elements.multiplier(atk, Elements.element(access, defender.getElementId()));
+            if (m != 1f) event.setAmount(event.getAmount() * m);
+        }
+        if (weapon != null) OnHitEffects.incoming(atk.onHit(), event, attacker);
+    }
+
+    /** After-damage effects; same filter as above, and only when damage actually landed. */
+    private static void onDamagePost(LivingDamageEvent.Post event) {
+        LivingEntity target = event.getEntity();
+        if (target.level().isClientSide) return;
+        EdelRaidData weapon = weaponHit(event.getSource());
+        if (weapon == null || !(event.getSource().getEntity() instanceof LivingEntity attacker)) return;
+        Element atk = Elements.element(target.level().registryAccess(), weapon.element());
+        if (atk != null) OnHitEffects.afterHit(atk.onHit(), target, attacker, event.getNewDamage());
+    }
+
+    private static void onCritical(CriticalHitEvent event) {
+        Player p = event.getEntity();
+        if (p.level().isClientSide) return;
+        EdelRaidData d = EdelWeaponItem.data(p.getMainHandItem());
+        if (d == null) return;
+        Element atk = Elements.element(p.level().registryAccess(), d.element());
+        if (atk != null) OnHitEffects.critical(atk.onHit(), event);
+    }
+
+    /** Quiet's Silenced effect: projectiles from a silenced entity never spawn. Cheapest check first: is it a projectile. */
+    private static void onEntityJoin(EntityJoinLevelEvent event) {
+        if (!(event.getEntity() instanceof Projectile proj) || event.loadedFromDisk() || event.getLevel().isClientSide) return;
+        if (proj.getOwner() instanceof LivingEntity owner && owner.hasEffect(ModEffects.SILENCED)) event.setCanceled(true);
+    }
+
+    /** A weapon item that vanished while she was held (a removed mod, /clear) is restored from the registry's snapshot. */
+    private static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer p)) return;
+        List<EdelRaidData> held = EdelRegistry.get(p.getServer()).heldBy(p.getUUID());
+        if (held.isEmpty()) return;
+        Inventory inv = p.getInventory();
+        for (EdelRaidData snap : held) {
+            boolean present = false;
+            for (int i = 0; i < inv.getContainerSize() && !present; i++) {
+                EdelRaidData d = EdelWeaponItem.data(inv.getItem(i));
+                present = d != null && d.id().equals(snap.id()) && d.stamp() == snap.stamp();
+            }
+            if (!present) {
+                ReactManager.reformFromSnapshot(p, snap);
+                p.displayClientMessage(Component.translatable("message.edelraids.recovered_lost", snap.name()), false);
+            }
+        }
     }
 
     private static void onDeath(LivingDeathEvent event) {
@@ -109,6 +193,7 @@ public final class CommonEvents {
         boolean awake = bond >= Config.AWAKEN_BOND.get();
         EdelRaidData updated = d.withBond(bond, awake);
         weapon.set(ModComponents.EDEL_RAID.get(), updated);
+        EdelRegistry.get(killer.getServer()).updateSnapshot(updated);
         if (awake && !d.awakened()) {
             ReactManager.applyStats(weapon, updated, killer.level().registryAccess(), false);
             killer.displayClientMessage(Component.translatable("message.edelraids.awakened", d.name()), false);

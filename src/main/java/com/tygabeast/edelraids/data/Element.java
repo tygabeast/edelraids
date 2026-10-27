@@ -15,8 +15,9 @@ import java.util.List;
  * @param color    gem and glow tint, written as "#RRGGBB" in JSON
  * @param forms    weapon forms this element can roll; empty means "any form"
  * @param onHit    effect applied when her weapon form hits
+ * @param rollable whether new Edel Raids (spawn eggs, natural spawns) can roll this element; ring 4 is Edel Garden only
  */
-public record Element(int ring, int position, int color, List<ResourceLocation> forms, OnHit onHit) {
+public record Element(int ring, int position, int color, List<ResourceLocation> forms, OnHit onHit, boolean rollable) {
 
     public static final Codec<Integer> HEX_COLOR = Codec.STRING.comapFlatMap(s -> {
         try {
@@ -32,7 +33,8 @@ public record Element(int ring, int position, int color, List<ResourceLocation> 
             Codec.intRange(0, 5).fieldOf("position").forGetter(Element::position),
             HEX_COLOR.fieldOf("color").forGetter(Element::color),
             ResourceLocation.CODEC.listOf().optionalFieldOf("forms", List.of()).forGetter(Element::forms),
-            OnHit.CODEC.optionalFieldOf("on_hit", OnHit.NONE).forGetter(Element::onHit)
+            OnHit.CODEC.optionalFieldOf("on_hit", OnHit.NONE).forGetter(Element::onHit),
+            Codec.BOOL.optionalFieldOf("rollable", true).forGetter(Element::rollable)
     ).apply(i, Element::new));
 
     /** @param type an on-hit effect id handled by {@link OnHitEffects}; strength meaning depends on the type */

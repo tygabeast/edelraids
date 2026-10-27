@@ -2,6 +2,16 @@
   "ring": 1,
   "position": 1,
   "color": "#4FC9A0",
-  "forms": ["edelraids:longsword"],
-  "on_hit": { "type": "edelraids:knockback", "strength": 0.5 }
+  "forms": [
+    "edelraids:longsword",
+    "edelraids:greatsword",
+    "edelraids:spear",
+    "edelraids:axe",
+    "edelraids:war_hammer",
+    "edelraids:bow"
+  ],
+  "on_hit": {
+    "type": "edelraids:knockback",
+    "strength": 0.5
+  }
 }

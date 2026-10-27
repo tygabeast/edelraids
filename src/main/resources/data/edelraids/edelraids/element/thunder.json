@@ -1,0 +1,18 @@
+{
+  "ring": 4,
+  "position": 0,
+  "color": "#FFD60A",
+  "forms": [
+    "edelraids:greatsword",
+    "edelraids:spear",
+    "edelraids:axe",
+    "edelraids:scythe",
+    "edelraids:war_hammer",
+    "edelraids:bow"
+  ],
+  "on_hit": {
+    "type": "edelraids:chain",
+    "strength": 3.0
+  },
+  "rollable": false
+}

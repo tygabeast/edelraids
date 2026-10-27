@@ -12,6 +12,17 @@ import com.tygabeast.edelraids.item.EdelWeaponItem;
 import com.tygabeast.edelraids.registry.ModComponents;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.ResourceLocationArgument;
+import net.minecraft.resources.ResourceLocation;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import com.tygabeast.edelraids.EdelRaids;
+import com.tygabeast.edelraids.data.Element;
+import com.tygabeast.edelraids.data.Elements;
+import com.tygabeast.edelraids.registry.ModEntities;
+import com.tygabeast.edelraids.registry.ModRegistries;
+import java.util.concurrent.CompletableFuture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -24,6 +35,7 @@ import org.jetbrains.annotations.Nullable;
  * /edelraids release [confirm]  - anyone: free the Edel Raid you look at or hold (bond resets)
  * /edelraids info              - anyone: show her name, element, form, quality, bond and registry state
  * /edelraids bond <value>      - operators: set her bond, for testing awakening
+ * /edelraids create <element> [form] [quality] - operators: create a specific Edel Raid (any ring, for testing)
  */
 public final class EdelCommands {
     private EdelCommands() {}
@@ -34,6 +46,14 @@ public final class EdelCommands {
                         .executes(ctx -> releasePrompt(ctx))
                         .then(Commands.literal("confirm").executes(EdelCommands::release)))
                 .then(Commands.literal("info").executes(EdelCommands::info))
+                .then(Commands.literal("create").requires(s -> s.hasPermission(2))
+                        .then(Commands.argument("element", ResourceLocationArgument.id()).suggests(EdelCommands::suggestElements)
+                                .executes(ctx -> create(ctx, null, 1))
+                                .then(Commands.argument("form", ResourceLocationArgument.id()).suggests(EdelCommands::suggestForms)
+                                        .executes(ctx -> create(ctx, ResourceLocationArgument.getId(ctx, "form"), 1))
+                                        .then(Commands.argument("quality", IntegerArgumentType.integer(1, 3))
+                                                .executes(ctx -> create(ctx, ResourceLocationArgument.getId(ctx, "form"),
+                                                        IntegerArgumentType.getInteger(ctx, "quality")))))))
                 .then(Commands.literal("bond").requires(s -> s.hasPermission(2))
                         .then(Commands.argument("value", IntegerArgumentType.integer(0))
                                 .executes(ctx -> setBond(ctx, IntegerArgumentType.getInteger(ctx, "value"))))));
@@ -120,8 +140,44 @@ public final class EdelCommands {
             EdelRaidData updated = d.withBond(value, awake);
             held.set(ModComponents.EDEL_RAID.get(), updated);
             ReactManager.applyStats(held, updated, p.level().registryAccess(), false);
+            EdelRegistry.get(p.getServer()).updateSnapshot(updated);
         }
         ctx.getSource().sendSuccess(() -> Component.translatable("command.edelraids.bond_set", value), true);
+        return 1;
+    }
+
+    private static CompletableFuture<Suggestions> suggestElements(CommandContext<CommandSourceStack> ctx, SuggestionsBuilder b) {
+        return SharedSuggestionProvider.suggestResource(ctx.getSource().registryAccess().registryOrThrow(ModRegistries.ELEMENT).keySet(), b);
+    }
+
+    private static CompletableFuture<Suggestions> suggestForms(CommandContext<CommandSourceStack> ctx, SuggestionsBuilder b) {
+        return SharedSuggestionProvider.suggestResource(ctx.getSource().registryAccess().registryOrThrow(ModRegistries.WEAPON_FORM).keySet(), b);
+    }
+
+    private static int create(CommandContext<CommandSourceStack> ctx, @Nullable ResourceLocation formId, int quality) throws CommandSyntaxException {
+        ServerPlayer p = ctx.getSource().getPlayerOrException();
+        ResourceLocation elementId = ResourceLocationArgument.getId(ctx, "element");
+        Element element = Elements.element(p.level().registryAccess(), elementId);
+        if (element == null) {
+            ctx.getSource().sendFailure(Component.translatable("command.edelraids.unknown_element", elementId.toString()));
+            return 0;
+        }
+        ResourceLocation form = formId;
+        if (form == null) {
+            form = element.forms().isEmpty() ? EdelRaids.id("longsword") : element.forms().get(p.getRandom().nextInt(element.forms().size()));
+        } else if (p.level().registryAccess().registryOrThrow(ModRegistries.WEAPON_FORM).get(form) == null) {
+            ctx.getSource().sendFailure(Component.translatable("command.edelraids.unknown_form", form.toString()));
+            return 0;
+        }
+        EdelRaidEntity e = ModEntities.EDEL_RAID.get().create(p.serverLevel());
+        if (e == null) return 0;
+        e.moveTo(p.getX(), p.getY(), p.getZ(), p.getYRot(), 0f);
+        e.setIdentity(elementId, form, quality, EdelRaidEntity.randomName(p.getRandom()));
+        p.serverLevel().addFreshEntity(e);
+        ResourceLocation finalForm = form;
+        ctx.getSource().sendSuccess(() -> Component.translatable("command.edelraids.created", e.getEdelName(),
+                EdelWeaponItem.elementName(elementId), EdelWeaponItem.formName(finalForm),
+                Component.translatable("edelraids.quality." + e.getQuality())), true);
         return 1;
     }
 

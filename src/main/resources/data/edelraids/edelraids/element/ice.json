@@ -1,0 +1,18 @@
+{
+  "ring": 4,
+  "position": 2,
+  "color": "#A5F2FF",
+  "forms": [
+    "edelraids:greatsword",
+    "edelraids:spear",
+    "edelraids:axe",
+    "edelraids:scythe",
+    "edelraids:war_hammer",
+    "edelraids:bow"
+  ],
+  "on_hit": {
+    "type": "edelraids:freeze",
+    "strength": 60.0
+  },
+  "rollable": false
+}

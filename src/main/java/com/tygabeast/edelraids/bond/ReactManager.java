@@ -11,6 +11,11 @@ import com.tygabeast.edelraids.registry.ModComponents;
 import com.tygabeast.edelraids.registry.ModEntities;
 import com.tygabeast.edelraids.registry.ModItems;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Unit;
+import net.neoforged.fml.ModList;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
@@ -35,6 +40,10 @@ import java.util.UUID;
 public final class ReactManager {
     /** 10 points of item wear = 1 point of her health. */
     public static final float WEAR_PER_HEALTH = 10f;
+    private static final ResourceLocation FORM_REACH_ID = EdelRaids.id("form_reach");
+    private static final ResourceLocation BC_PRESET_ID = ResourceLocation.fromNamespaceAndPath("bettercombat", "preset_id");
+    private static boolean bcChecked;
+    @Nullable private static DataComponentType<ResourceLocation> bcPresetType;
 
     private ReactManager() {}
 
@@ -66,8 +75,9 @@ public final class ReactManager {
         EdelRegistry reg = EdelRegistry.get(level.getServer());
         long stamp = reg.nextStamp(e.getEdelId());
         e.setStamp(stamp);
-        ItemStack weapon = buildWeapon(e.toData(), e.getStoredWeapon(), level.registryAccess());
-        reg.setHeld(e.getEdelId(), p.getUUID(), stamp);
+        EdelRaidData data = e.toData();
+        ItemStack weapon = buildWeapon(data, e.getStoredWeapon(), level.registryAccess());
+        reg.setHeld(e.getEdelId(), p.getUUID(), stamp, data);
 
         ItemStack previous = p.getMainHandItem();
         p.setItemInHand(InteractionHand.MAIN_HAND, weapon);
@@ -101,15 +111,68 @@ public final class ReactManager {
         double damage = form.attackDamage() - 1.0
                 + (data.quality() - 1) * Config.QUALITY_DAMAGE.get()
                 + (data.awakened() ? Config.AWAKEN_DAMAGE.get() : 0.0);
-        stack.set(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.builder()
+        DataComponentType<ResourceLocation> bcPreset = betterCombatPreset();
+        ItemAttributeModifiers.Builder mods = ItemAttributeModifiers.builder()
                 .add(Attributes.ATTACK_DAMAGE, new AttributeModifier(Item.BASE_ATTACK_DAMAGE_ID, damage, AttributeModifier.Operation.ADD_VALUE), EquipmentSlotGroup.MAINHAND)
-                .add(Attributes.ATTACK_SPEED, new AttributeModifier(Item.BASE_ATTACK_SPEED_ID, form.attackSpeed() - 4.0, AttributeModifier.Operation.ADD_VALUE), EquipmentSlotGroup.MAINHAND)
-                .build());
+                .add(Attributes.ATTACK_SPEED, new AttributeModifier(Item.BASE_ATTACK_SPEED_ID, form.attackSpeed() - 4.0, AttributeModifier.Operation.ADD_VALUE), EquipmentSlotGroup.MAINHAND);
+        // With Better Combat its preset sets reach, so the form's own reach bonus would count twice.
+        if (form.reachBonus() != 0f && bcPreset == null) {
+            mods.add(Attributes.ENTITY_INTERACTION_RANGE, new AttributeModifier(FORM_REACH_ID, form.reachBonus(), AttributeModifier.Operation.ADD_VALUE), EquipmentSlotGroup.MAINHAND);
+        }
+        stack.set(DataComponents.ATTRIBUTE_MODIFIERS, mods.build());
+        setMarker(stack, ModComponents.SWEEPS.get(), form.sweeps());
+        setMarker(stack, ModComponents.RANGED.get(), form.ranged());
+        if (bcPreset != null) {
+            if (form.betterCombatPreset().isPresent()) stack.set(bcPreset, form.betterCombatPreset().get());
+            else stack.remove(bcPreset);
+        }
         int max = Math.max(1, Math.round(data.maxHealth() * WEAR_PER_HEALTH));
         stack.set(DataComponents.MAX_DAMAGE, max);
         if (setWearFromHealth) {
             stack.set(DataComponents.DAMAGE, Mth.clamp(Math.round((data.maxHealth() - data.health()) * WEAR_PER_HEALTH), 0, max - 1));
         }
+    }
+
+    private static void setMarker(ItemStack stack, DataComponentType<Unit> type, boolean on) {
+        if (on) stack.set(type, Unit.INSTANCE);
+        else stack.remove(type);
+    }
+
+    /**
+     * Better Combat (2.1+) picks a weapon's combo set from its "bettercombat:preset_id" component. It is looked up by
+     * name once, so this mod needs no code dependency on Better Combat; null when it is not installed.
+     */
+    @Nullable
+    @SuppressWarnings("unchecked")
+    private static DataComponentType<ResourceLocation> betterCombatPreset() {
+        if (!bcChecked) {
+            bcChecked = true;
+            if (ModList.get().isLoaded("bettercombat")) {
+                bcPresetType = (DataComponentType<ResourceLocation>) BuiltInRegistries.DATA_COMPONENT_TYPE.get(BC_PRESET_ID);
+            }
+        }
+        return bcPresetType;
+    }
+
+    /** Strip everything React added, keeping enchantments, custom names and other mods' data. */
+    private static ItemStack keptWeapon(ItemStack stack) {
+        ItemStack kept = stack.copyWithCount(1);
+        kept.remove(ModComponents.EDEL_RAID.get());
+        kept.remove(ModComponents.SWEEPS.get());
+        kept.remove(ModComponents.RANGED.get());
+        kept.remove(DataComponents.ATTRIBUTE_MODIFIERS);
+        kept.remove(DataComponents.MAX_DAMAGE);
+        kept.remove(DataComponents.DAMAGE);
+        DataComponentType<ResourceLocation> bc = betterCombatPreset();
+        if (bc != null) kept.remove(bc);
+        return kept;
+    }
+
+    /** Restore her from the registry snapshot when her weapon item was lost while she was held. */
+    @Nullable
+    public static EdelRaidEntity reformFromSnapshot(ServerPlayer p, EdelRaidData snapshot) {
+        ItemStack stack = buildWeapon(snapshot, ItemStack.EMPTY, p.level().registryAccess());
+        return reform(p.serverLevel(), p.position(), p.getYRot(), stack, false);
     }
 
     /** True when this weapon stack is the one the registry currently points at (or the registry has no record of her). */
@@ -135,11 +198,7 @@ public final class ReactManager {
         if (e == null) return null;
 
         float health = wounded ? 1f : Math.max(1f, d.maxHealth() - stack.getDamageValue() / WEAR_PER_HEALTH);
-        ItemStack kept = stack.copyWithCount(1);
-        kept.remove(ModComponents.EDEL_RAID.get());
-        kept.remove(DataComponents.ATTRIBUTE_MODIFIERS);
-        kept.remove(DataComponents.MAX_DAMAGE);
-        kept.remove(DataComponents.DAMAGE);
+        ItemStack kept = keptWeapon(stack);
 
         EdelRegistry reg = EdelRegistry.get(level.getServer());
         long stamp = reg.nextStamp(d.id());

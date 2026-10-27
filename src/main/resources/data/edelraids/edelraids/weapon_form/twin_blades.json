@@ -1,0 +1,6 @@
+{
+  "attack_damage": 6.5,
+  "attack_speed": 1.8,
+  "sweeps": true,
+  "better_combat_preset": "bettercombat:twin_blade"
+}

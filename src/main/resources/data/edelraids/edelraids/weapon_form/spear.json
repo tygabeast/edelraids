@@ -1,0 +1,6 @@
+{
+  "attack_damage": 7.5,
+  "attack_speed": 1.2,
+  "reach_bonus": 1.5,
+  "better_combat_preset": "bettercombat:spear"
+}

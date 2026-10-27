@@ -1,0 +1,17 @@
+{
+  "ring": 3,
+  "position": 2,
+  "color": "#9B1B30",
+  "forms": [
+    "edelraids:scythe",
+    "edelraids:twin_blades",
+    "edelraids:spear",
+    "edelraids:rapier",
+    "edelraids:gauntlets",
+    "edelraids:longsword"
+  ],
+  "on_hit": {
+    "type": "edelraids:haste",
+    "strength": 2.0
+  }
+}

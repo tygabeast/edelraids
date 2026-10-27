@@ -3,6 +3,7 @@ package com.tygabeast.edelraids;
 import com.tygabeast.edelraids.entity.EdelRaidEntity;
 import com.tygabeast.edelraids.event.CommonEvents;
 import com.tygabeast.edelraids.registry.ModComponents;
+import com.tygabeast.edelraids.registry.ModEffects;
 import com.tygabeast.edelraids.registry.ModEntities;
 import com.tygabeast.edelraids.registry.ModItems;
 import com.tygabeast.edelraids.registry.ModRegistries;
@@ -26,6 +27,7 @@ public final class EdelRaids {
     public EdelRaids(IEventBus modBus, ModContainer container) {
         ModComponents.REGISTER.register(modBus);
         ModEntities.REGISTER.register(modBus);
+        ModEffects.REGISTER.register(modBus);
         ModItems.REGISTER.register(modBus);
         ModItems.TABS.register(modBus);
         modBus.addListener(ModRegistries::onNewRegistry);
