@@ -105,6 +105,12 @@ gradle build              # jar in build/libs
 
 GeckoLib is a compile-only dependency resolved from its official Maven; it is never bundled.
 
+## 0.2.2 changes
+
+- Gauntlets: the cuff now sits on the forearm with steel over the hand and gold knuckles at the fist; the left
+  gauntlet in third person and the right in first person face the right way; the left first-person fist tilts
+  toward the centre like the right.
+
 ## 0.2.1 changes
 
 - Each weapon form has its own hand, inventory and ground positions. The spear is held like a trident in first

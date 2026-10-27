@@ -298,13 +298,13 @@ FORM_PARTS = {
         'blade': ('root', [([-0.25, 5.5, -0.25], [0.5, 18, 0.5], 'blade')]),
         'awakened': ('blade', [([-3.5, 4.5, -0.25], [2, 0.5, 0.5], 'wing'), ([1.5, 4.5, -0.25], [2, 0.5, 0.5], 'wing')]),
     },
-    'gauntlets': {
-        'grip': ('root', [([-2.5, -4.5, -2.5], [5, 3, 5], 'dark')]),
-        'guard': ('root', [([-2.25, 3.5, -2.25], [4.5, 1, 4.5], 'guard')]),
-        'gem': ('guard', [([-1, 0.5, -2.5], [2, 2, 0.5], 'gem')]),
-        'blade': ('root', [([-2, -1.5, -2], [4, 5, 4], 'blade')]),
-        'awakened': ('blade', [([-2, 4.5, -1], [1, 1.5, 1], 'wing'), ([-0.5, 4.5, -1], [1, 1.5, 1], 'wing'),
-                               ([1, 4.5, -1], [1, 1.5, 1], 'wing')]),
+    'gauntlets': {  # cuff on the forearm, steel over the hand, gold knuckle plate; geo +y runs toward the fingers
+        'grip': ('root', [([-2.5, -3.5, -2.5], [5, 2, 5], 'dark')]),
+        'guard': ('root', [([-2.25, 2.5, -2.25], [4.5, 1, 4.5], 'guard')]),
+        'gem': ('guard', [([-1, 0, -2.5], [2, 2, 0.5], 'gem')]),
+        'blade': ('root', [([-2, -1.5, -2], [4, 4, 4], 'blade')]),
+        'awakened': ('blade', [([-2, 3.5, -1], [1, 1.5, 1], 'wing'), ([-0.5, 3.5, -1], [1, 1.5, 1], 'wing'),
+                               ([1, 3.5, -1], [1, 1.5, 1], 'wing')]),
     },
     'bow': {
         'grip': ('root', [([-0.5, -2, -0.5], [1, 4, 1], 'grip')]),
@@ -540,11 +540,12 @@ def worn_on_arm(left):
     q = mul(rot_x(math.radians(-90)), rot_y(math.radians(180)))
     qi = [[q[j][i] for j in range(3)] for i in range(3)]  # rotation inverse = transpose
     layer = [-1 if left else 1, 2, -10]
-    centre = [1 if left else -1, 5.5, 0]
+    centre = [1 if left else -1, 6.8, 0]  # cuff on the forearm, knuckles at the end of the hand (arm y 3 to 10.7)
     t = [a - b for a, b in zip(apply(qi, centre), layer)]
     s = 1.1
     if left:
-        return to_left_json(qi, t, s)
+        # the left gauntlet of a pair faces the other way: turn it half round its own length
+        return to_left_json(mul(qi, rot_y(math.radians(180))), t, s)
     return {'rotation': to_xyz(qi), 'translation': [round(v, 2) for v in t], 'scale': [s, s, s]}
 
 
@@ -581,8 +582,10 @@ FORM_DISPLAY = {
     'gauntlets': {  # worn over the forearm and hand; the pair's second gauntlet is in the off hand
         'thirdperson_righthand': worn_on_arm(False),
         'thirdperson_lefthand': worn_on_arm(True),
-        'firstperson_righthand': {'rotation': [-80, 0, 10], 'translation': [0, 0, 0], 'scale': [0.9, 0.9, 0.9]},
-        'firstperson_lefthand': {'rotation': [-80, 0, -10], 'translation': [0, 0, 0], 'scale': [0.9, 0.9, 0.9]},
+        'firstperson_righthand': {'rotation': to_xyz(mul(xyz(-80, 0, 10), rot_y(math.radians(180)))), 'translation': [0, 0, 0],
+                                  'scale': [0.9, 0.9, 0.9]},
+        # tilted toward the centre like the right fist (entries for the left hand are mirrored when applied)
+        'firstperson_lefthand': {'rotation': [-80, 0, 10], 'translation': [0, 0, 0], 'scale': [0.9, 0.9, 0.9]},
         'gui': {'rotation': [30, 225, 0], 'translation': [0, 0, 0], 'scale': [0.9, 0.9, 0.9]},
         'ground': {'rotation': [0, 0, 0], 'translation': [0, 3, 0], 'scale': [0.5, 0.5, 0.5]},
         'fixed': {'rotation': [0, 0, 0], 'translation': [0, 0, 0], 'scale': [0.9, 0.9, 0.9]},
