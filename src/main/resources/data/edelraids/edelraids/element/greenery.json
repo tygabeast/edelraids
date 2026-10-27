@@ -12,6 +12,6 @@
   ],
   "on_hit": {
     "type": "edelraids:root",
-    "strength": 1.0
+    "strength": 2.0
   }
 }

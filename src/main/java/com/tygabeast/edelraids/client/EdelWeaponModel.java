@@ -4,6 +4,7 @@ import com.tygabeast.edelraids.EdelRaids;
 import com.tygabeast.edelraids.data.EdelRaidData;
 import com.tygabeast.edelraids.item.EdelWeaponItem;
 import net.minecraft.resources.ResourceLocation;
+import software.bernie.geckolib.animatable.GeoAnimatable;
 import software.bernie.geckolib.cache.GeckoLibCache;
 import software.bernie.geckolib.model.GeoModel;
 import software.bernie.geckolib.renderer.GeoItemRenderer;
@@ -17,7 +18,7 @@ import java.util.Map;
  * so rendering allocates nothing per frame. A form without a model (for example one added by a datapack) falls back to
  * the longsword instead of failing to render.
  */
-public class EdelWeaponModel extends GeoModel<EdelWeaponItem> {
+public class EdelWeaponModel<T extends GeoAnimatable> extends GeoModel<T> {
     private static final ResourceLocation DEFAULT_FORM = EdelRaids.id("longsword");
     private static final ResourceLocation ANIMATION = EdelRaids.id("animations/item/edel_weapon.animation.json");
 
@@ -39,8 +40,8 @@ public class EdelWeaponModel extends GeoModel<EdelWeaponItem> {
         return p;
     }
 
-    private Paths paths(GeoRenderer<EdelWeaponItem> renderer) {
-        if (renderer instanceof GeoItemRenderer<EdelWeaponItem> itemRenderer) {
+    private Paths paths(GeoRenderer<T> renderer) {
+        if (renderer instanceof GeoItemRenderer<?> itemRenderer) {
             EdelRaidData d = EdelWeaponItem.data(itemRenderer.getCurrentItemStack());
             if (d != null) return paths(d.form());
         }
@@ -48,27 +49,27 @@ public class EdelWeaponModel extends GeoModel<EdelWeaponItem> {
     }
 
     @Override
-    public ResourceLocation getModelResource(EdelWeaponItem animatable, GeoRenderer<EdelWeaponItem> renderer) {
+    public ResourceLocation getModelResource(T animatable, GeoRenderer<T> renderer) {
         return paths(renderer).model();
     }
 
     @Override
-    public ResourceLocation getTextureResource(EdelWeaponItem animatable, GeoRenderer<EdelWeaponItem> renderer) {
+    public ResourceLocation getTextureResource(T animatable, GeoRenderer<T> renderer) {
         return paths(renderer).texture();
     }
 
     @Override
-    public ResourceLocation getModelResource(EdelWeaponItem animatable) {
+    public ResourceLocation getModelResource(T animatable) {
         return paths(DEFAULT_FORM).model();
     }
 
     @Override
-    public ResourceLocation getTextureResource(EdelWeaponItem animatable) {
+    public ResourceLocation getTextureResource(T animatable) {
         return paths(DEFAULT_FORM).texture();
     }
 
     @Override
-    public ResourceLocation getAnimationResource(EdelWeaponItem animatable) {
+    public ResourceLocation getAnimationResource(T animatable) {
         return ANIMATION;
     }
 }

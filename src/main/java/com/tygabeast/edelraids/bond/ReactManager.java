@@ -122,6 +122,7 @@ public final class ReactManager {
         stack.set(DataComponents.ATTRIBUTE_MODIFIERS, mods.build());
         setMarker(stack, ModComponents.SWEEPS.get(), form.sweeps());
         setMarker(stack, ModComponents.RANGED.get(), form.ranged());
+        setMarker(stack, ModComponents.PAIRED.get(), form.paired());
         if (bcPreset != null) {
             if (form.betterCombatPreset().isPresent()) stack.set(bcPreset, form.betterCombatPreset().get());
             else stack.remove(bcPreset);
@@ -160,6 +161,7 @@ public final class ReactManager {
         kept.remove(ModComponents.EDEL_RAID.get());
         kept.remove(ModComponents.SWEEPS.get());
         kept.remove(ModComponents.RANGED.get());
+        kept.remove(ModComponents.PAIRED.get());
         kept.remove(DataComponents.ATTRIBUTE_MODIFIERS);
         kept.remove(DataComponents.MAX_DAMAGE);
         kept.remove(DataComponents.DAMAGE);

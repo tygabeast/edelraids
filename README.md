@@ -19,6 +19,7 @@ not affiliated with or endorsed by its rights holders.
 | Release her | `/edelraids release` (shows a warning), then `/edelraids release confirm` while looking at her or holding her |
 | Info | `/edelraids info` while looking at her or holding her |
 | Bow form | Hold use to draw and release to fire; needs no arrows. Sneak + use still reforms her |
+| Paired forms | Twin blades and gauntlets: while she is in your main hand, her second blade or gauntlet appears in an empty off hand. With Better Combat you dual-wield them |
 | Set bond (operators) | `/edelraids bond <value>` while looking at her or holding her |
 | Create one (operators) | `/edelraids create <element> [form] [quality 1-3]`, any element including ring 4 |
 
@@ -42,7 +43,7 @@ Rules:
 | 1 | Wind | Extra knockback |
 | 1 | Fire | Sets the target on fire, 3 s |
 | 1 | Water | Slowness, 2 s |
-| 1 | Greenery | Rooted in place, 1 s |
+| 1 | Greenery | Rooted in place, 2 s |
 | 1 | Wisdom | 20% chance of +50% damage |
 | 2 | Beauty | 30% chance the target forgets who it was fighting |
 | 2 | Sound | Knocks a raised shield down |
@@ -70,12 +71,12 @@ Rules:
 | Longsword | 7 | 1.6 | | Sweeps | 1, 2, 3 |
 | Greatsword | 9 | 1.0 | +0.5 | Sweeps | 1, 4 |
 | Spear | 7.5 | 1.2 | +1.5 | | 1, 3, 4 |
-| Twin Blades | 6.5 | 1.8 | | Sweeps | 2, 3 |
+| Twin Blades | 6.5 | 1.8 | | Sweeps; a pair of swords | 2, 3 |
 | Scythe | 8.5 | 1.1 | +1.0 | Sweeps | 3, 4 |
 | Axe | 9 | 0.9 | | | 1, 4 |
 | War Hammer | 10 | 0.8 | | | 1, 2, 4 |
 | Rapier | 6 | 2.0 | +0.5 | | 2, 3 |
-| Gauntlets | 5 | 2.4 | −1.0 | | 2, 3 |
+| Gauntlets | 5 | 2.4 | −1.0 | Worn as a pair | 2, 3 |
 | Bow | 3 melee | 1.0 | | Fires arrows without ammunition | 1, 2, 4 |
 
 Damage is at Third Class; Second and First Class add +1 and +2, awakening adds +1. With Better Combat installed,
@@ -90,7 +91,7 @@ Elements and weapon forms are datapack registries:
 - `data/<namespace>/edelraids/element/<name>.json`: `ring` (1-4), `position` (0-5), `color` ("#RRGGBB"),
   optional `forms` (list of form ids), optional `on_hit` (`type`, `strength`), optional `rollable` (default true).
 - `data/<namespace>/edelraids/weapon_form/<name>.json`: `attack_damage`, `attack_speed`, optional `sweeps`,
-  `reach_bonus`, `ranged`, and `better_combat_preset` (a Better Combat weapon-attributes id).
+  `reach_bonus`, `ranged`, `paired`, and `better_combat_preset` (a Better Combat weapon-attributes id).
 
 A form's client model is `assets/<namespace>/geo/item/weapon/<name>.geo.json` with texture
 `assets/<namespace>/textures/item/weapon/<name>.png`; forms without a model render as the longsword.
@@ -103,6 +104,16 @@ gradle build              # jar in build/libs
 ```
 
 GeckoLib is a compile-only dependency resolved from its official Maven; it is never bundled.
+
+## 0.2.1 changes
+
+- Each weapon form has its own hand, inventory and ground positions. The spear is held like a trident in first
+  person; the bow is held like a vanilla bow and has a proper inventory icon; gauntlets are worn on the forearms.
+- Twin blades are now a pair of swords, and gauntlets a pair: the second piece appears in an empty off hand while she is
+  in your main hand, so Better Combat can dual-wield them. Off-hand hits wear her weapon and carry her element.
+  Swapping hands is blocked while holding a pair.
+- The axe and scythe heads now face forward.
+- Rooted (Greenery) lasts 2 seconds instead of 1.
 
 ## 0.2.0 changes
 

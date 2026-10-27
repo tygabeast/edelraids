@@ -20,7 +20,9 @@ import com.tygabeast.edelraids.data.EdelRaidData;
 import com.tygabeast.edelraids.data.Elemental;
 import com.tygabeast.edelraids.data.Elements;
 import com.tygabeast.edelraids.entity.EdelRaidEntity;
+import com.tygabeast.edelraids.item.EdelTwinItem;
 import com.tygabeast.edelraids.item.EdelWeaponItem;
+import net.neoforged.neoforge.event.entity.living.LivingSwapItemsEvent;
 import com.tygabeast.edelraids.registry.ModComponents;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.Component;
@@ -59,6 +61,7 @@ public final class CommonEvents {
         bus.addListener(CommonEvents::onCritical);
         bus.addListener(CommonEvents::onEntityJoin);
         bus.addListener(CommonEvents::onLogin);
+        bus.addListener(CommonEvents::onSwapHands);
         bus.addListener(EventPriority.HIGHEST, CommonEvents::onDeath);
         bus.addListener(CommonEvents::onContainerClose);
         bus.addListener(CommonEvents::onEntityInteract);
@@ -145,7 +148,8 @@ public final class CommonEvents {
         for (EdelRaidData snap : held) {
             boolean present = false;
             for (int i = 0; i < inv.getContainerSize() && !present; i++) {
-                EdelRaidData d = EdelWeaponItem.data(inv.getItem(i));
+                ItemStack is = inv.getItem(i);
+                EdelRaidData d = is.getItem() instanceof EdelWeaponItem ? EdelWeaponItem.data(is) : null;
                 present = d != null && d.id().equals(snap.id()) && d.stamp() == snap.stamp();
             }
             if (!present) {
@@ -173,6 +177,8 @@ public final class CommonEvents {
             if (s.getItem() instanceof EdelWeaponItem) {
                 inv.setItem(i, ItemStack.EMPTY);
                 ReactManager.reformAt(p, s, false);
+            } else if (s.getItem() instanceof EdelTwinItem) {
+                inv.setItem(i, ItemStack.EMPTY);
             }
         }
         ItemStack carried = p.containerMenu.getCarried();
@@ -186,6 +192,11 @@ public final class CommonEvents {
         int gain = Config.BOND_PER_KILL.get();
         if (gain <= 0) return;
         ItemStack weapon = killer.getMainHandItem();
+        if (weapon.getItem() instanceof EdelTwinItem) {
+            // A Better Combat off-hand swing swaps hands for the attack; the bond belongs on her real weapon.
+            weapon = EdelTwinItem.primaryFor(killer, weapon);
+            if (weapon == null) return;
+        }
         EdelRaidData d = EdelWeaponItem.data(weapon);
         if (d == null || !d.isPledger(killer.getUUID())) return;
 
@@ -210,6 +221,10 @@ public final class CommonEvents {
         for (Slot slot : menu.slots) {
             if (slot.container == inv) continue;
             ItemStack s = slot.getItem();
+            if (s.getItem() instanceof EdelTwinItem) {
+                slot.set(ItemStack.EMPTY);
+                continue;
+            }
             if (!(s.getItem() instanceof EdelWeaponItem)) continue;
             ItemStack taken = s.copy();
             slot.set(ItemStack.EMPTY);
@@ -222,26 +237,39 @@ public final class CommonEvents {
         if (returned) p.displayClientMessage(Component.translatable("message.edelraids.no_storage"), true);
     }
 
+    private static boolean isEdel(ItemStack stack) {
+        return stack.getItem() instanceof EdelWeaponItem || stack.getItem() instanceof EdelTwinItem;
+    }
+
+    /** Swapping hands would split a pair (her weapon to the off hand, the twin to the main hand), so it is blocked. */
+    private static void onSwapHands(LivingSwapItemsEvent.Hands event) {
+        ItemStack toOff = event.getItemSwappedToOffHand();
+        ItemStack toMain = event.getItemSwappedToMainHand();
+        if (toMain.getItem() instanceof EdelTwinItem || (toOff.getItem() instanceof EdelWeaponItem && toOff.has(ModComponents.PAIRED.get()))) {
+            event.setCanceled(true);
+        }
+    }
+
     private static boolean storesItems(Entity target) {
         return target instanceof ItemFrame || target instanceof ArmorStand || target instanceof Allay;
     }
 
     private static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
-        if (event.getItemStack().getItem() instanceof EdelWeaponItem && storesItems(event.getTarget())) {
+        if (isEdel(event.getItemStack()) && storesItems(event.getTarget())) {
             event.setCancellationResult(InteractionResult.FAIL);
             event.setCanceled(true);
         }
     }
 
     private static void onEntityInteractSpecific(PlayerInteractEvent.EntityInteractSpecific event) {
-        if (event.getItemStack().getItem() instanceof EdelWeaponItem && storesItems(event.getTarget())) {
+        if (isEdel(event.getItemStack()) && storesItems(event.getTarget())) {
             event.setCancellationResult(InteractionResult.FAIL);
             event.setCanceled(true);
         }
     }
 
     private static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
-        if (event.getItemStack().getItem() instanceof EdelWeaponItem
+        if (isEdel(event.getItemStack())
                 && event.getLevel().getBlockState(event.getPos()).is(Blocks.DECORATED_POT)) {
             event.setCancellationResult(InteractionResult.FAIL);
             event.setCanceled(true);

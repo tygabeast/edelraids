@@ -22,5 +22,8 @@ public final class ModComponents {
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<Unit>> RANGED =
             REGISTER.registerComponentType("ranged", b -> b.persistent(Unit.CODEC).networkSynchronized(StreamCodec.unit(Unit.INSTANCE)));
 
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<Unit>> PAIRED =
+            REGISTER.registerComponentType("paired", b -> b.persistent(Unit.CODEC).networkSynchronized(StreamCodec.unit(Unit.INSTANCE)));
+
     private ModComponents() {}
 }

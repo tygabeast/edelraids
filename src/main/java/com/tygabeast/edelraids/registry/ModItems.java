@@ -1,6 +1,7 @@
 package com.tygabeast.edelraids.registry;
 
 import com.tygabeast.edelraids.EdelRaids;
+import com.tygabeast.edelraids.item.EdelTwinItem;
 import com.tygabeast.edelraids.item.EdelWeaponItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -20,6 +21,10 @@ public final class ModItems {
     /** One item for every element and form: the form and element come from the stack's data component. */
     public static final DeferredItem<EdelWeaponItem> EDEL_WEAPON = REGISTER.register("edel_weapon",
             () -> new EdelWeaponItem(new Item.Properties().stacksTo(1).fireResistant().rarity(Rarity.RARE)));
+
+    /** The off-hand half of a paired form. A display and attack copy only: she lives in the main-hand item. */
+    public static final DeferredItem<EdelTwinItem> EDEL_TWIN = REGISTER.register("edel_twin",
+            () -> new EdelTwinItem(new Item.Properties().stacksTo(1).fireResistant().rarity(Rarity.RARE)));
 
     public static final DeferredItem<DeferredSpawnEggItem> EDEL_RAID_SPAWN_EGG = REGISTER.register("edel_raid_spawn_egg",
             () -> new DeferredSpawnEggItem(ModEntities.EDEL_RAID, 0x7CE0B0, 0xF2E8D5, new Item.Properties()));

@@ -51,6 +51,7 @@
   "effect.edelraids.warded": "Warded",
   "entity.edelraids.edel_raid": "Edel Raid",
   "item.edelraids.edel_raid_spawn_egg": "Edel Raid Spawn Egg",
+  "item.edelraids.edel_twin": "Edel Raid Weapon (Pair)",
   "item.edelraids.edel_weapon": "Edel Raid Weapon",
   "item.edelraids.edel_weapon.named": "%s's %s",
   "itemGroup.edelraids": "Edel Raids: Pledged Blades",

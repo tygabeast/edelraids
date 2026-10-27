@@ -180,7 +180,9 @@ public class EdelWeaponItem extends Item implements GeoItem {
     @Override
     public void inventoryTick(ItemStack stack, Level level, Entity entity, int slot, boolean selected) {
         if (level.isClientSide || !(entity instanceof ServerPlayer p)) return;
-        if ((level.getGameTime() + slot) % Config.VALIDATE_INTERVAL.get() != 0) return;
+        long time = level.getGameTime();
+        if (selected && time % 5 == 0 && stack.has(ModComponents.PAIRED.get())) syncTwin(p, stack, time % 20 == 0);
+        if ((time + slot) % Config.VALIDATE_INTERVAL.get() != 0) return;
 
         EdelRaidData d = data(stack);
         if (d == null) {
@@ -209,6 +211,20 @@ public class EdelWeaponItem extends Item implements GeoItem {
         if (first != -1 && p.getInventory().getItem(first) != stack) {
             EdelRaids.debug("Voided a duplicate weapon copy of {} in {}'s inventory", d.name(), p.getGameProfile().getName());
             stack.setCount(0);
+        }
+    }
+
+    /**
+     * Paired forms: keep the matching twin in the off hand while she is in the main hand. Only fills an empty off hand,
+     * and every second refreshes the twin if her data (bond, awakening, enchantments) changed.
+     */
+    private static void syncTwin(ServerPlayer p, ItemStack primary, boolean refresh) {
+        ItemStack off = p.getOffhandItem();
+        if (off.isEmpty()) {
+            p.setItemInHand(InteractionHand.OFF_HAND, EdelTwinItem.twinOf(primary));
+        } else if (refresh && off.getItem() instanceof EdelTwinItem) {
+            ItemStack expected = EdelTwinItem.twinOf(primary);
+            if (!ItemStack.isSameItemSameComponents(off, expected)) p.setItemInHand(InteractionHand.OFF_HAND, expected);
         }
     }
 
@@ -285,11 +301,11 @@ public class EdelWeaponItem extends Item implements GeoItem {
     @Override
     public void createGeoRenderer(Consumer<GeoRenderProvider> consumer) {
         consumer.accept(new GeoRenderProvider() {
-            private EdelWeaponRenderer renderer;
+            private EdelWeaponRenderer<EdelWeaponItem> renderer;
 
             @Override
             public BlockEntityWithoutLevelRenderer getGeoItemRenderer() {
-                if (renderer == null) renderer = new EdelWeaponRenderer();
+                if (renderer == null) renderer = new EdelWeaponRenderer<>();
                 return renderer;
             }
         });

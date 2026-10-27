@@ -121,5 +121,67 @@
         0.6
       ]
     }
-  }
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "edelraids:form": 1
+      },
+      "model": "edelraids:item/weapon/longsword"
+    },
+    {
+      "predicate": {
+        "edelraids:form": 2
+      },
+      "model": "edelraids:item/weapon/greatsword"
+    },
+    {
+      "predicate": {
+        "edelraids:form": 3
+      },
+      "model": "edelraids:item/weapon/spear"
+    },
+    {
+      "predicate": {
+        "edelraids:form": 4
+      },
+      "model": "edelraids:item/weapon/twin_blades"
+    },
+    {
+      "predicate": {
+        "edelraids:form": 5
+      },
+      "model": "edelraids:item/weapon/scythe"
+    },
+    {
+      "predicate": {
+        "edelraids:form": 6
+      },
+      "model": "edelraids:item/weapon/axe"
+    },
+    {
+      "predicate": {
+        "edelraids:form": 7
+      },
+      "model": "edelraids:item/weapon/war_hammer"
+    },
+    {
+      "predicate": {
+        "edelraids:form": 8
+      },
+      "model": "edelraids:item/weapon/rapier"
+    },
+    {
+      "predicate": {
+        "edelraids:form": 9
+      },
+      "model": "edelraids:item/weapon/gauntlets"
+    },
+    {
+      "predicate": {
+        "edelraids:form": 10
+      },
+      "model": "edelraids:item/weapon/bow"
+    }
+  ]
 }

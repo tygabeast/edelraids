@@ -261,13 +261,12 @@ FORM_PARTS = {
         'blade': ('root', [([-1.5, 21.5, -0.5], [3, 5, 1], 'blade'), ([-0.5, 26.5, -0.5], [1, 2, 1], 'edge')]),
         'awakened': ('blade', [([-3, 20.5, -0.25], [1.5, 3, 0.5], 'wing'), ([1.5, 20.5, -0.25], [1.5, 3, 0.5], 'wing')]),
     },
-    'twin_blades': {
-        'grip': ('root', [([-0.5, -3, -0.5], [1, 6, 1], 'grip')]),
-        'guard': ('root', [([-2, 3, -1], [4, 1, 2], 'guard'), ([-2, -4, -1], [4, 1, 2], 'guard')]),
-        'gem': ('guard', [([-1, 2.75, -1.5], [2, 1.5, 0.5], 'gem')]),
-        'blade': ('root', [([-1, 4, -0.5], [2, 11, 1], 'blade'), ([-0.5, 15, -0.5], [1, 2, 1], 'edge'),
-                           ([-1, -15, -0.5], [2, 11, 1], 'blade'), ([-0.5, -17, -0.5], [1, 2, 1], 'edge')]),
-        'awakened': ('blade', [([1, 11, -0.25], [2, 4, 0.5], 'wing'), ([-3, -15, -0.25], [2, 4, 0.5], 'wing')]),
+    'twin_blades': {  # one of a pair: the second sword is in the off hand
+        'grip': ('root', [([-0.75, -1, -0.75], [1.5, 1, 1.5], 'guard'), ([-0.5, 0, -0.5], [1, 4, 1], 'grip')]),
+        'guard': ('root', [([-2, 4, -1], [4, 1, 2], 'guard')]),
+        'gem': ('guard', [([-0.75, 4, -1.5], [1.5, 1, 0.5], 'gem')]),
+        'blade': ('root', [([-1, 5, -0.5], [2, 12, 1], 'blade'), ([-0.5, 17, -0.5], [1, 2, 1], 'edge')]),
+        'awakened': ('blade', [([1, 9, -0.25], [1.5, 5, 0.5], 'wing')]),
     },
     'scythe': {
         'grip': ('root', [([-0.5, -6, -0.5], [1, 28, 1], 'wood'), ([-1, 22, -1], [2, 1, 2], 'dark')]),
@@ -319,6 +318,14 @@ FORM_PARTS = {
 }
 
 
+MIRRORED = {'axe', 'scythe'}
+
+
+def mirror_x(parts):
+    return {bone: (parent, [([-(o[0] + sz[0]), o[1], o[2]], sz, role) for o, sz, role in cubes])
+            for bone, (parent, cubes) in parts.items()}
+
+
 def pack_form(name, parts, size=64):
     """Shelf-pack box-UV footprints into a size x size sheet; returns (geo, pixels)."""
     px = canvas(size, size)
@@ -365,7 +372,7 @@ ELEMENTS = [
     ('wind', 'Wind', 1, 1, '#4FC9A0', 'knockback', 0.5),
     ('fire', 'Fire', 1, 2, '#F26B21', 'ignite', 3.0),
     ('water', 'Water', 1, 3, '#2F80ED', 'slow', 2.0),
-    ('greenery', 'Greenery', 1, 4, '#43A047', 'root', 1.0),
+    ('greenery', 'Greenery', 1, 4, '#43A047', 'root', 2.0),
     ('wisdom', 'Wisdom', 1, 5, '#5E35B1', 'insight', 0.2),
     ('beauty', 'Beauty', 2, 0, '#F48FB1', 'charm', 0.3),
     ('sound', 'Sound', 2, 1, '#FFB300', 'shield_break', 1.0),
@@ -387,18 +394,18 @@ ELEMENTS = [
     ('star', 'Star', 4, 5, '#8C9EFF', 'starfall', 0.5),
 ]
 
-# id, display name, damage, speed, sweeps, reach bonus, ranged, Better Combat preset
+# id, display name, damage, speed, sweeps, reach bonus, ranged, Better Combat preset, paired (off-hand twin)
 FORMS = [
-    ('longsword', 'Longsword', 7.0, 1.6, True, 0.0, False, 'bettercombat:sword'),
-    ('greatsword', 'Greatsword', 9.0, 1.0, True, 0.5, False, 'bettercombat:claymore'),
-    ('spear', 'Spear', 7.5, 1.2, False, 1.5, False, 'bettercombat:spear'),
-    ('twin_blades', 'Twin Blades', 6.5, 1.8, True, 0.0, False, 'bettercombat:twin_blade'),
-    ('scythe', 'Scythe', 8.5, 1.1, True, 1.0, False, 'bettercombat:scythe'),
-    ('axe', 'Axe', 9.0, 0.9, False, 0.0, False, 'bettercombat:axe'),
-    ('war_hammer', 'War Hammer', 10.0, 0.8, False, 0.0, False, 'bettercombat:hammer'),
-    ('rapier', 'Rapier', 6.0, 2.0, False, 0.5, False, 'bettercombat:rapier'),
-    ('gauntlets', 'Gauntlets', 5.0, 2.4, False, -1.0, False, 'bettercombat:fist'),
-    ('bow', 'Bow', 3.0, 1.0, False, 0.0, True, None),
+    ('longsword', 'Longsword', 7.0, 1.6, True, 0.0, False, 'bettercombat:sword', False),
+    ('greatsword', 'Greatsword', 9.0, 1.0, True, 0.5, False, 'bettercombat:claymore', False),
+    ('spear', 'Spear', 7.5, 1.2, False, 1.5, False, 'bettercombat:spear', False),
+    ('twin_blades', 'Twin Blades', 6.5, 1.8, True, 0.0, False, 'bettercombat:sword', True),
+    ('scythe', 'Scythe', 8.5, 1.1, True, 1.0, False, 'bettercombat:scythe', False),
+    ('axe', 'Axe', 9.0, 0.9, False, 0.0, False, 'bettercombat:axe', False),
+    ('war_hammer', 'War Hammer', 10.0, 0.8, False, 0.0, False, 'bettercombat:hammer', False),
+    ('rapier', 'Rapier', 6.0, 2.0, False, 0.5, False, 'bettercombat:rapier', False),
+    ('gauntlets', 'Gauntlets', 5.0, 2.4, False, -1.0, False, 'bettercombat:fist', True),
+    ('bow', 'Bow', 3.0, 1.0, False, 0.0, True, None, False),
 ]
 
 # Custom mob effects: id, display name, icon color
@@ -432,7 +439,7 @@ def write_registries():
         if ring == 4:
             obj['rollable'] = False
         write_json(os.path.join(base, 'element', el + '.json'), obj)
-    for fid, _, dmg, spd, sweeps, reach, ranged, preset in FORMS:
+    for fid, _, dmg, spd, sweeps, reach, ranged, preset, paired in FORMS:
         obj = {'attack_damage': dmg, 'attack_speed': spd}
         if sweeps:
             obj['sweeps'] = True
@@ -442,6 +449,8 @@ def write_registries():
             obj['ranged'] = True
         if preset:
             obj['better_combat_preset'] = preset
+        if paired:
+            obj['paired'] = True
         write_json(os.path.join(base, 'weapon_form', fid + '.json'), obj)
 
 
@@ -497,30 +506,103 @@ def to_xyz(m):
     return [round(math.degrees(a), 2), round(math.degrees(b), 2), round(math.degrees(c), 2)]
 
 
-def from_vanilla(rot, trans, scale, handle=(-5.5, -5.5, 0.0), tilt=-45.0):
-    """Our model upright with grip at origin == vanilla sprite tilted 45 degrees with its grip at `handle` (pixels)."""
+def from_vanilla(rot, trans, scale, handle=(-5.5, -5.5, 0.0), tilt=-45.0, model_scale=1.0):
+    """Our model upright with grip at origin == a vanilla sprite tilted `tilt` degrees with its grip at `handle` (pixels
+    from the sprite centre). model_scale shrinks our model to the sprite's size. Works on json values for either hand:
+    for a left-hand entry pass the vanilla left entry, the handle mirrored in x and the tilt negated."""
     rv = xyz(*rot)
     r = mul(rv, rot_z(math.radians(tilt)))
     off = apply(rv, [h * scale for h in handle])
     t = [round(trans[i] + off[i], 2) for i in range(3)]
-    return {'rotation': to_xyz(r), 'translation': t, 'scale': [scale, scale, scale]}
+    s = round(scale * model_scale, 3)
+    return {'rotation': to_xyz(r), 'translation': t, 'scale': [s, s, s]}
+
+
+M = [[-1, 0, 0], [0, 1, 0], [0, 0, 1]]
+
+
+def to_left_json(r_applied, t_applied, scale):
+    """ItemTransform.apply mirrors left-hand entries (x translation, y and z rotation); encode an applied transform."""
+    return {'rotation': to_xyz(mul(mul(M, r_applied), M)), 'translation': [round(-t_applied[0], 2), round(t_applied[1], 2), round(t_applied[2], 2)],
+            'scale': [scale, scale, scale]}
+
+
+def from_trident(rot, trans, d):
+    """Place our spear exactly where the vanilla trident's own geometry sits. d = trident point minus our point (pixels)."""
+    r = xyz(*rot)
+    off = apply(r, d)
+    return {'rotation': [float(v) for v in rot], 'translation': [round(trans[i] + off[i], 2) for i in range(3)], 'scale': [1, 1, 1]}
+
+
+def worn_on_arm(left):
+    """Third person: put the model on the forearm and hand instead of in the grip. Works backwards through
+    ItemInHandLayer (rotate X -90, Y 180, translate) so geo +y runs down the arm to the fingers."""
+    q = mul(rot_x(math.radians(-90)), rot_y(math.radians(180)))
+    qi = [[q[j][i] for j in range(3)] for i in range(3)]  # rotation inverse = transpose
+    layer = [-1 if left else 1, 2, -10]
+    centre = [1 if left else -1, 5.5, 0]
+    t = [a - b for a, b in zip(apply(qi, centre), layer)]
+    s = 1.1
+    if left:
+        return to_left_json(qi, t, s)
+    return {'rotation': to_xyz(qi), 'translation': [round(v, 2) for v in t], 'scale': [s, s, s]}
+
+
+SWORD_DISPLAY = {
+    'thirdperson_righthand': from_vanilla((0, -90, 55), (0, 4.0, 0.5), 0.85),
+    'thirdperson_lefthand': from_vanilla((0, 90, -55), (0, 4.0, 0.5), 0.85, (5.5, -5.5, 0.0), 45.0),
+    'firstperson_righthand': from_vanilla((0, -90, 25), (1.13, 3.2, 1.13), 0.68),
+    'firstperson_lefthand': from_vanilla((0, 90, -25), (1.13, 3.2, 1.13), 0.68, (5.5, -5.5, 0.0), 45.0),
+    'gui': {'rotation': [0, 0, -45], 'translation': [-4.5, -4.5, 0], 'scale': [0.6, 0.6, 0.6]},
+    'ground': {'rotation': [0, 0, 0], 'translation': [0, 2, 0], 'scale': [0.5, 0.5, 0.5]},
+    'fixed': {'rotation': [0, 0, -45], 'translation': [-4.5, -4.5, 0], 'scale': [0.6, 0.6, 0.6]},
+}
+
+# The vanilla bow sprite: its grip sits 3.5 px left of and 2 px above the centre, the limbs run up-right to
+# down-left, and it is about 19 px tip to tip against our model's 30 px.
+BOW_GRIP, BOW_K = (-3.5, 2.0, 0.0), 19.0 / 30.0
+BOW_GRIP_L = (3.5, 2.0, 0.0)
+
+FORM_DISPLAY = {
+    'spear': {  # first person where the trident is (its tip lines up with ours)
+        'firstperson_righthand': from_trident((0, -90, 25), (-3, 17, 1), (-8, -32.5, -8)),
+        'firstperson_lefthand': from_trident((0, 90, -25), (13, 17, 1), (8, -32.5, -8)),
+        'gui': {'rotation': [0, 0, -45], 'translation': [-4, -4, 0], 'scale': [0.45, 0.45, 0.45]},
+    },
+    'bow': {
+        'thirdperson_righthand': from_vanilla((-80, 260, -40), (-1, -2, 2.5), 0.9, BOW_GRIP, -45, BOW_K),
+        'thirdperson_lefthand': from_vanilla((-80, -280, 40), (-1, -2, 2.5), 0.9, BOW_GRIP_L, 45, BOW_K),
+        'firstperson_righthand': from_vanilla((0, -90, 25), (1.13, 3.2, 1.13), 0.68, BOW_GRIP, -45, BOW_K),
+        'firstperson_lefthand': from_vanilla((0, 90, -25), (1.13, 3.2, 1.13), 0.68, BOW_GRIP_L, 45, BOW_K),
+        'gui': from_vanilla((0, 0, 0), (0, 0, 0), 1.0, BOW_GRIP, -45, BOW_K),
+        'ground': from_vanilla((0, 0, 0), (0, 2, 0), 0.5, BOW_GRIP, -45, BOW_K),
+        'fixed': from_vanilla((0, 180, 0), (0, 0, 0), 1.0, BOW_GRIP, -45, BOW_K),
+    },
+    'gauntlets': {  # worn over the forearm and hand; the pair's second gauntlet is in the off hand
+        'thirdperson_righthand': worn_on_arm(False),
+        'thirdperson_lefthand': worn_on_arm(True),
+        'firstperson_righthand': {'rotation': [-80, 0, 10], 'translation': [0, 0, 0], 'scale': [0.9, 0.9, 0.9]},
+        'firstperson_lefthand': {'rotation': [-80, 0, -10], 'translation': [0, 0, 0], 'scale': [0.9, 0.9, 0.9]},
+        'gui': {'rotation': [30, 225, 0], 'translation': [0, 0, 0], 'scale': [0.9, 0.9, 0.9]},
+        'ground': {'rotation': [0, 0, 0], 'translation': [0, 3, 0], 'scale': [0.5, 0.5, 0.5]},
+        'fixed': {'rotation': [0, 0, 0], 'translation': [0, 0, 0], 'scale': [0.9, 0.9, 0.9]},
+    },
+}
+
+
+def form_item_model(form):
+    display = dict(SWORD_DISPLAY)
+    display.update(FORM_DISPLAY.get(form, {}))
+    return {'parent': 'builtin/entity', 'gui_light': 'front', 'display': display}
 
 
 def weapon_item_model():
-    left_handle = (5.5, -5.5, 0.0)
-    return {
-        'parent': 'builtin/entity',
-        'gui_light': 'front',
-        'display': {
-            'thirdperson_righthand': from_vanilla((0, -90, 55), (0, 4.0, 0.5), 0.85),
-            'thirdperson_lefthand': from_vanilla((0, 90, -55), (0, 4.0, 0.5), 0.85, left_handle, 45.0),
-            'firstperson_righthand': from_vanilla((0, -90, 25), (1.13, 3.2, 1.13), 0.68),
-            'firstperson_lefthand': from_vanilla((0, 90, -25), (1.13, 3.2, 1.13), 0.68, left_handle, 45.0),
-            'gui': {'rotation': [0, 0, -45], 'translation': [-4.5, -4.5, 0], 'scale': [0.6, 0.6, 0.6]},
-            'ground': {'rotation': [0, 0, 0], 'translation': [0, 2, 0], 'scale': [0.5, 0.5, 0.5]},
-            'fixed': {'rotation': [0, 0, -45], 'translation': [-4.5, -4.5, 0], 'scale': [0.6, 0.6, 0.6]},
-        },
-    }
+    """Base model (longsword positions) plus one override per form, chosen by the edelraids:form item property.
+    Overrides must cover every index in ascending order so each form resolves to exactly its own model."""
+    model = form_item_model('longsword')
+    model['overrides'] = [{'predicate': {MODID + ':form': i + 1}, 'model': MODID + ':item/weapon/' + f[0]}
+                          for i, f in enumerate(FORMS)]
+    return model
 
 
 # ------------------------------------------------------------------ lang
@@ -530,6 +612,7 @@ LANG = {
     'entity.edelraids.edel_raid': 'Edel Raid',
     'item.edelraids.edel_weapon': 'Edel Raid Weapon',
     'item.edelraids.edel_weapon.named': "%s's %s",
+    'item.edelraids.edel_twin': 'Edel Raid Weapon (Pair)',
     'item.edelraids.edel_raid_spawn_egg': 'Edel Raid Spawn Egg',
     'edelraids.quality.1': 'Third Class',
     'edelraids.quality.2': 'Second Class',
@@ -569,6 +652,38 @@ for _eid, _name, _ in EFFECTS:
     LANG['effect.edelraids.' + _eid] = _name
 
 
+FORM_INDEX_JAVA = """package com.tygabeast.edelraids.client;
+
+import com.tygabeast.edelraids.EdelRaids;
+import net.minecraft.resources.ResourceLocation;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * GENERATED by tools/gen.py. Index of each built-in form for the edelraids:form item property, which picks the
+ * form's item model (and so its hand positions). Forms added by datapacks get 0 and use the longsword positions.
+ */
+final class FormIndex {
+    private static final String[] FORMS = {
+@FORMS@
+    };
+    private static final Map<ResourceLocation, Float> INDEX = new HashMap<>();
+
+    static {
+        for (int i = 0; i < FORMS.length; i++) INDEX.put(EdelRaids.id(FORMS[i]), (float) (i + 1));
+    }
+
+    private FormIndex() {}
+
+    static float of(ResourceLocation form) {
+        Float f = INDEX.get(form);
+        return f == null ? 0f : f;
+    }
+}
+"""
+
+
 def main():
     write_png(os.path.join(ASSETS, 'textures', 'entity', 'edel_raid.png'), 64, 64, entity_texture())
     write_json(os.path.join(ASSETS, 'geo', 'entity', 'edel_raid.geo.json'), entity_geo())
@@ -578,7 +693,7 @@ def main():
     write_json(os.path.join(ASSETS, 'geo', 'item', 'weapon', 'longsword.geo.json'), longsword_geo())
     write_json(os.path.join(ASSETS, 'animations', 'item', 'edel_weapon.animation.json'), weapon_animations())
     for name, parts in FORM_PARTS.items():
-        geo, px = pack_form(name, parts)
+        geo, px = pack_form(name, mirror_x(parts) if name in MIRRORED else parts)
         write_json(os.path.join(ASSETS, 'geo', 'item', 'weapon', name + '.geo.json'), geo)
         write_png(os.path.join(ASSETS, 'textures', 'item', 'weapon', name + '.png'), 64, 64, px)
     for eid, _, col in EFFECTS:
@@ -586,6 +701,12 @@ def main():
     write_registries()
 
     write_json(os.path.join(ASSETS, 'models', 'item', 'edel_weapon.json'), weapon_item_model())
+    write_json(os.path.join(ASSETS, 'models', 'item', 'edel_twin.json'), weapon_item_model())
+    for f in FORMS:
+        write_json(os.path.join(ASSETS, 'models', 'item', 'weapon', f[0] + '.json'), form_item_model(f[0]))
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'src', 'main', 'java', 'com', 'tygabeast',
+                           'edelraids', 'client', 'FormIndex.java'), 'w', newline='\n') as fj:
+        fj.write(FORM_INDEX_JAVA.replace('@FORMS@', ',\n'.join('            "' + f[0] + '"' for f in FORMS)))
     write_json(os.path.join(ASSETS, 'models', 'item', 'edel_raid_spawn_egg.json'), {'parent': 'minecraft:item/template_spawn_egg'})
     write_json(os.path.join(ASSETS, 'lang', 'en_us.json'), dict(sorted(LANG.items())))
 
