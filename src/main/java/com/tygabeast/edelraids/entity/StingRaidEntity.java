@@ -10,6 +10,7 @@ import com.tygabeast.edelraids.data.StingArm;
 import com.tygabeast.edelraids.event.CommonEvents;
 import com.tygabeast.edelraids.registry.ModItems;
 import com.tygabeast.edelraids.registry.ModRegistries;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleTypes;
@@ -36,6 +37,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -46,6 +48,7 @@ import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.FollowOwnerGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
+import net.minecraft.world.entity.ai.goal.MoveTowardsRestrictionGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.RangedAttackGoal;
 import net.minecraft.world.entity.ai.goal.SitWhenOrderedToGoal;
@@ -73,6 +76,7 @@ import software.bernie.geckolib.animation.RawAnimation;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * A Sting Raid: a girl implanted with an artificial stone. She Reacts by herself, turning her forearm into a weapon,
@@ -106,6 +110,7 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
     private static final ResourceLocation SUBDUED_SLOW = EdelRaids.id("sting_subdued");
     private static final int REACT_ANIM_TICKS = 10;
     private static final float RE_REACT_MAX = 50f;
+    private static final int REST_RADIUS = 8;
     private static final int DEFAULT_COLOR = 0x9FB0A8;
 
     private final AnimatableInstanceCache geoCache = GeckoLibUtil.createInstanceCache(this);
@@ -120,6 +125,9 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
     private int idleTicks;
     private int subduedTicks;
     private int nextAttackTick;
+    /** A freed Sting Raid told to rest stays near restPos, does not follow, and does not count toward the active limit. */
+    private boolean resting;
+    @Nullable private BlockPos restPos;
 
     public StingRaidEntity(EntityType<? extends TamableAnimal> type, Level level) {
         super(type, level);
@@ -166,15 +174,23 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
                 mob.doHurtTarget(target);
             }
         });
-        goalSelector.addGoal(4, new FollowOwnerGoal(this, 1.0, 8.0f, 2.5f));
+        goalSelector.addGoal(4, new FollowOwnerGoal(this, 1.0, 8.0f, 2.5f) {
+            @Override public boolean canUse() { return !resting && super.canUse(); }
+            @Override public boolean canContinueToUse() { return !resting && super.canContinueToUse(); }
+        });
+        goalSelector.addGoal(5, new MoveTowardsRestrictionGoal(this, 0.9));
         goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 0.8) {
             @Override public boolean canUse() { return !isSubdued() && super.canUse(); }
         });
         goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 8.0f));
         goalSelector.addGoal(8, new RandomLookAroundGoal(this));
 
-        targetSelector.addGoal(1, new OwnerHurtByTargetGoal(this));
-        targetSelector.addGoal(2, new OwnerHurtTargetGoal(this));
+        targetSelector.addGoal(1, new OwnerHurtByTargetGoal(this) {
+            @Override public boolean canUse() { return !resting && super.canUse(); }
+        });
+        targetSelector.addGoal(2, new OwnerHurtTargetGoal(this) {
+            @Override public boolean canUse() { return !resting && super.canUse(); }
+        });
         targetSelector.addGoal(3, new HurtByTargetGoal(this).setAlertOthers(StingRaidEntity.class));
         targetSelector.addGoal(4, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false, p -> true) {
             @Override public boolean canUse() { return isHostile() && level().getDifficulty() != Difficulty.PEACEFUL && super.canUse(); }
@@ -250,6 +266,7 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
     public boolean isSubdued() { return flag(F_SUBDUED); }
     public boolean isStabilized() { return flag(F_STABILIZED); }
     public boolean isHostile() { return !isTame(); }
+    public boolean isResting() { return resting; }
     /** 0-100, in steps of 5 on the client. */
     public int getStrainDisplay() { return entityData.get(DATA_STRAIN) * 5; }
 
@@ -275,11 +292,15 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
     private void serverTick() {
         if (!rolled) rollIdentity(random);
 
+        // Never keep a target she should not fight: anyone out of the fight, an ally (including companions of her own
+        // owner, which covers a grudge from before she was freed), a player in peaceful, or anything while she sits.
         LivingEntity target = getTarget();
-        if (target != null && (isOutOfFight(target) || (isHostile() && target instanceof Player && level().getDifficulty() == Difficulty.PEACEFUL))) {
+        if (target != null && (isOrderedToSit() || isOutOfFight(target) || isAlliedTo(target)
+                || (isHostile() && target instanceof Player && level().getDifficulty() == Difficulty.PEACEFUL))) {
             setTarget(null);
             target = null;
         }
+        if (isOrderedToSit() && (isReacted() || isReacting())) revert(false);
 
         if (isSubdued()) {
             if (isHostile() && subduedTicks > 0 && --subduedTicks == 0) escape();
@@ -307,8 +328,7 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
 
         // A freed Sting Raid keeps her place in her owner's count even if the record was lost; checked every 10 seconds.
         if (isTame() && (tickCount + getId()) % 200 == 0 && getOwnerUUID() != null && level() instanceof ServerLevel sl) {
-            StingRegistry reg = StingRegistry.get(sl.getServer());
-            if (!reg.contains(getOwnerUUID(), getUUID())) reg.add(getOwnerUUID(), getUUID());
+            StingRegistry.get(sl.getServer()).put(getOwnerUUID(), getUUID(), !resting);
         }
     }
 
@@ -388,20 +408,57 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
         if (level() instanceof ServerLevel sl) sl.sendParticles(ParticleTypes.HAPPY_VILLAGER, getX(), getY(1.0), getZ(), 8, 0.3, 0.4, 0.3, 0.0);
     }
 
-    /** True if she was freed; tells the player why not otherwise. */
-    private boolean free(ServerPlayer p) {
-        int limit = Config.STING_LIMIT.get();
-        StingRegistry reg = StingRegistry.get(p.getServer());
-        if (reg.count(p.getUUID()) >= limit) {
-            p.displayClientMessage(Component.translatable("message.edelraids.sting_limit", limit), true);
-            return false;
-        }
+    /**
+     * She becomes the player's companion: active if they have room under the limit, otherwise resting where she is.
+     * Whatever she was fighting as a hunter's Sting Raid is forgotten.
+     */
+    public void free(ServerPlayer p) {
         tame(p);
         setOrderedToSit(false);
         subduedTicks = 0;
-        reg.add(p.getUUID(), getUUID());
-        p.displayClientMessage(Component.translatable("message.edelraids.sting_freed", stingName), false);
-        return true;
+        setTarget(null);
+        setLastHurtByMob(null);
+        int limit = Config.STING_LIMIT.get();
+        StingRegistry reg = StingRegistry.get(p.getServer());
+        boolean active = reg.activeCount(p.getUUID()) < limit;
+        setResting(!active);
+        reg.put(p.getUUID(), getUUID(), active);
+        p.displayClientMessage(active ? Component.translatable("message.edelraids.sting_freed", stingName)
+                : Component.translatable("message.edelraids.sting_freed_resting", stingName, limit), false);
+    }
+
+    private void setResting(boolean rest) {
+        resting = rest;
+        if (rest) {
+            restPos = blockPosition();
+            restrictTo(restPos, REST_RADIUS);
+            setOrderedToSit(false);
+            setInSittingPose(false);
+        } else {
+            restPos = null;
+            clearRestriction();
+        }
+        setTarget(null);
+        getNavigation().stop();
+    }
+
+    /** Sneak + right-click: rest here, or come along again if the owner has room for another active Sting Raid. */
+    private void toggleResting(ServerPlayer p) {
+        StingRegistry reg = StingRegistry.get(p.getServer());
+        if (resting) {
+            int limit = Config.STING_LIMIT.get();
+            if (reg.activeCount(p.getUUID()) >= limit) {
+                p.displayClientMessage(Component.translatable("message.edelraids.sting_limit", limit), true);
+                return;
+            }
+            setResting(false);
+            reg.put(p.getUUID(), getUUID(), true);
+            p.displayClientMessage(Component.translatable("message.edelraids.sting_active", stingName), true);
+        } else {
+            setResting(true);
+            reg.put(p.getUUID(), getUUID(), false);
+            p.displayClientMessage(Component.translatable("message.edelraids.sting_resting", stingName), true);
+        }
     }
 
     /** /edelraids release: she leaves to find her own way, and her place in the owner's count is freed. */
@@ -439,8 +496,7 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
         }
         if (isHostile()) {
             if (!isSubdued()) return InteractionResult.PASS;
-            if (!free(sp)) return InteractionResult.CONSUME;
-            mine = true;
+            free(sp);
             if (!stabilizer && !refined) {
                 sp.displayClientMessage(Component.translatable("message.edelraids.sting_failing", stingName), false);
                 return InteractionResult.SUCCESS;
@@ -474,7 +530,11 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
             return InteractionResult.CONSUME;
         }
         if (sp.isShiftKeyDown()) {
-            sp.displayClientMessage(Component.translatable("message.edelraids.sting_no_react", stingName), true);
+            toggleResting(sp);
+            return InteractionResult.SUCCESS;
+        }
+        if (resting) {
+            sp.displayClientMessage(Component.translatable("message.edelraids.sting_is_resting", stingName), true);
             return InteractionResult.CONSUME;
         }
         boolean sit = !isOrderedToSit();
@@ -494,11 +554,18 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
         return super.wantsToAttack(target, owner);
     }
 
-    /** Hunters' Sting Raids never fight each other. */
+    /** Hunters' Sting Raids never fight each other, and neither do companions of the same owner. */
     @Override
     public boolean isAlliedTo(Entity other) {
         if (isHostile() && other instanceof StingRaidEntity s && s.isHostile()) return true;
-        return super.isAlliedTo(other);
+        return sameOwner(this, other) || super.isAlliedTo(other);
+    }
+
+    /** Both are owned (tamed) by the same player: Edel Raids, Sting Raids, wolves and so on. */
+    public static boolean sameOwner(Entity a, Entity b) {
+        if (!(a instanceof OwnableEntity oa) || !(b instanceof OwnableEntity ob)) return false;
+        UUID owner = oa.getOwnerUUID();
+        return owner != null && owner.equals(ob.getOwnerUUID());
     }
 
     // ---------------------------------------------------------------- ranged (launcher arm)
@@ -570,6 +637,8 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
         tag.putBoolean("Stabilized", isStabilized());
         tag.putBoolean("Subdued", isSubdued());
         tag.putInt("SubduedTicks", subduedTicks);
+        tag.putBoolean("Resting", resting);
+        if (restPos != null) tag.putLong("RestPos", restPos.asLong());
     }
 
     @Override
@@ -584,6 +653,11 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
         setStrain(tag.getFloat("Strain"));
         setFlag(F_STABILIZED, tag.getBoolean("Stabilized"));
         subduedTicks = tag.getInt("SubduedTicks");
+        resting = tag.getBoolean("Resting");
+        if (resting) {
+            restPos = tag.contains("RestPos") ? BlockPos.of(tag.getLong("RestPos")) : blockPosition();
+            restrictTo(restPos, REST_RADIUS);
+        }
         if (tag.getBoolean("Subdued")) {
             setFlag(F_SUBDUED, true);
             AttributeInstance speed = getAttribute(Attributes.MOVEMENT_SPEED);

@@ -63,7 +63,7 @@ public final class Config {
             .defineInRange("songDamageScale", 1.0, 0.0, 10.0);
     static { B.pop().push("sting_raids"); }
     public static final ModConfigSpec.IntValue STING_LIMIT = B
-            .comment("How many freed Sting Raids one player can look after at once. 0 stops players freeing them.")
+            .comment("How many freed Sting Raids one player can have active (following) at once. Others rest where they were left (sneak + right-click to switch). 0 means freed Sting Raids can only rest.")
             .defineInRange("stingLimit", 2, 0, 64);
     public static final ModConfigSpec.DoubleValue STING_STRAIN_PER_SECOND = B
             .comment("Strain her artificial stone builds per second while she is Reacted. At 100 she is forced out and staggered.")

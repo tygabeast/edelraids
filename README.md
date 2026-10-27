@@ -46,7 +46,8 @@ never do.
 | Free one | Beat a hunter's Sting Raid: she is subdued, not killed. Right-click her within 2 minutes to free her, or she escapes |
 | Revive her | Use a **Stone Stabilizer** on a subdued Sting Raid. A freed one stays subdued until you do |
 | Steady her stone | Use a **Refined Stabilizer** on a freed Sting Raid once: her stone strains half as fast from then on |
-| Stay / follow | Right-click her with an empty hand |
+| Stay / follow | Right-click her with an empty hand. A sitting Sting Raid drops whatever she was fighting |
+| Rest / bring along | Sneak + right-click her with an empty hand. A resting Sting Raid stays within 8 blocks of where you left her, defends herself if attacked, and does not count toward your active limit |
 | Let her go | `/edelraids release`, then `/edelraids release confirm`, while looking at her: she leaves to find her own way |
 | Info | `/edelraids info` while looking at her: element, arm, strain, stabilizer and how many you look after |
 | Create one (operators) | `/edelraids sting <element> [form] [hostile\|freed]` |
@@ -57,7 +58,9 @@ never do.
 - **Strain:** staying Reacted strains her stone (full in 20 seconds). At full strain she is forced out and staggered
   for 3 seconds, and she can React again once strain falls to half. Her gem flickers faster as strain builds.
 - **Freed Sting Raids** follow, stay and fight like an Edel Raid, but cannot bond, sing, awaken or React with you.
-  You can look after 2 at a time. Subduing a hunter's Sting Raid counts as a kill for your Edel Raid's bond.
+  Up to 2 can be active (following you) at a time; you can free more, and they rest where you left them until you
+  bring one along. Subduing a hunter's Sting Raid counts as a kill for your Edel Raid's bond.
+- Companions of the same player (Edel Raids, Sting Raids, wolves and other pets) never target each other.
 - **Stone Stabilizer** (makes 2): amethyst shard above and below, iron ingot either side, redstone in the middle.
   **Refined Stabilizer:** a diamond surrounded by four Stone Stabilizers, with amethyst shards in the corners.
 
@@ -149,6 +152,14 @@ gradle build              # jar in build/libs
 ```
 
 GeckoLib is a compile-only dependency resolved from its official Maven; it is never bundled.
+
+## 0.4.1 changes
+
+- Fixed: two freed Sting Raids could fight each other, because a Sting Raid kept her grudge from before she was
+  freed. Companions of the same owner are now allies, freeing clears old targets, and a sitting companion drops
+  her target and stops Reacting.
+- The Sting Raid limit now counts active ones only. Sneak + right-click lets a freed Sting Raid rest near where you
+  left her; freeing one while at the limit leaves her resting.
 
 ## 0.4.0 changes
 

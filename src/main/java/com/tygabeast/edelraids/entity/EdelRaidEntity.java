@@ -298,7 +298,7 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
 
     private void serverTick() {
         if (edelId == null) rollIdentity(random);
-        if (getTarget() != null && StingRaidEntity.isOutOfFight(getTarget())) setTarget(null);
+        if (getTarget() != null && (StingRaidEntity.isOutOfFight(getTarget()) || isAlliedTo(getTarget()))) setTarget(null);
 
         int t = getTransformTicks();
         if (t > 0) {
@@ -394,6 +394,12 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
         setTarget(null);
         sp.displayClientMessage(Component.translatable(sit ? "message.edelraids.stay" : "message.edelraids.follow", edelName), true);
         return InteractionResult.SUCCESS;
+    }
+
+    /** Companions of the same owner never target each other. */
+    @Override
+    public boolean isAlliedTo(net.minecraft.world.entity.Entity other) {
+        return StingRaidEntity.sameOwner(this, other) || super.isAlliedTo(other);
     }
 
     @Override

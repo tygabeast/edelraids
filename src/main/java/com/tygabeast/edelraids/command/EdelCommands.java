@@ -159,11 +159,12 @@ public final class EdelCommands {
                 ctx.getSource().sendFailure(Component.translatable("command.edelraids.no_target"));
                 return 0;
             }
-            int count = StingRegistry.get(p.getServer()).count(p.getUUID());
+            StingRegistry reg = StingRegistry.get(p.getServer());
             ctx.getSource().sendSuccess(() -> Component.translatable("command.edelraids.sting_info", s.getStingName(),
                     EdelWeaponItem.elementName(s.getElementId()), Component.translatable("edelraids.sting_arm." + s.getArm().id()),
                     s.getStrainDisplay(), Component.translatable(s.isStabilized() ? "edelraids.sting.stabilized" : "edelraids.sting.unstabilized"),
-                    count, Config.STING_LIMIT.get()), false);
+                    Component.translatable(s.isResting() ? "edelraids.sting.resting" : "edelraids.sting.active"),
+                    reg.activeCount(p.getUUID()), Config.STING_LIMIT.get(), reg.count(p.getUUID())), false);
             return 1;
         }
         EdelRegistry.Entry entry = EdelRegistry.get(p.getServer()).get(d.id());
@@ -249,19 +250,12 @@ public final class EdelCommands {
             ctx.getSource().sendFailure(Component.translatable("command.edelraids.unknown_form", form.toString()));
             return 0;
         }
-        if (!hostile && StingRegistry.get(p.getServer()).count(p.getUUID()) >= Config.STING_LIMIT.get()) {
-            ctx.getSource().sendFailure(Component.translatable("message.edelraids.sting_limit", Config.STING_LIMIT.get()));
-            return 0;
-        }
         StingRaidEntity e = ModEntities.STING_RAID.get().create(p.serverLevel());
         if (e == null) return 0;
         e.moveTo(p.getX(), p.getY(), p.getZ(), p.getYRot(), 0f);
         e.setIdentity(elementId, form, EdelRaidEntity.randomName(p.getRandom()));
-        if (!hostile) {
-            e.tame(p);
-            StingRegistry.get(p.getServer()).add(p.getUUID(), e.getUUID());
-        }
         p.serverLevel().addFreshEntity(e);
+        if (!hostile) e.free(p);
         ctx.getSource().sendSuccess(() -> Component.translatable(hostile ? "command.edelraids.sting_created_hostile" : "command.edelraids.sting_created",
                 e.getStingName(), EdelWeaponItem.elementName(elementId), Component.translatable("edelraids.sting_arm." + e.getArm().id())), true);
         return 1;
