@@ -1,0 +1,9 @@
+{
+  "element": "edelraids:movement",
+  "slot": 2,
+  "shape": "field",
+  "cost": 50,
+  "power": 2.0,
+  "size": 4.0,
+  "duration": 140
+}

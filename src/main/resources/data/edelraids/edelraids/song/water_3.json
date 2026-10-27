@@ -1,0 +1,9 @@
+{
+  "element": "edelraids:water",
+  "slot": 3,
+  "shape": "field",
+  "cost": 100,
+  "power": 3.5,
+  "size": 6.0,
+  "duration": 200
+}

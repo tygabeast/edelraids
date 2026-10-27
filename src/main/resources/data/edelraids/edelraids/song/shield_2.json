@@ -1,0 +1,8 @@
+{
+  "element": "edelraids:shield",
+  "slot": 2,
+  "shape": "call",
+  "cost": 50,
+  "power": 8.0,
+  "size": 20.0
+}

@@ -1,0 +1,9 @@
+{
+  "element": "edelraids:fire",
+  "slot": 2,
+  "shape": "ward",
+  "cost": 50,
+  "power": 6.0,
+  "size": 3.0,
+  "duration": 300
+}

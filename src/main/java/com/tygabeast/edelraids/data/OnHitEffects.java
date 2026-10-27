@@ -41,6 +41,11 @@ public final class OnHitEffects {
 
         /** After damage landed; {@code damage} is the final amount. */
         default void afterHit(LivingEntity target, LivingEntity attacker, float damage, float strength) {}
+
+        /** Songs deal magic damage, so before-damage effects that matter for them adjust the amount here instead. */
+        default float songDamage(LivingEntity target, LivingEntity attacker, float amount, float strength) {
+            return amount;
+        }
     }
 
     private static final Map<ResourceLocation, Handler> HANDLERS = new HashMap<>();
@@ -59,6 +64,11 @@ public final class OnHitEffects {
     public static void critical(Element.OnHit onHit, CriticalHitEvent event) {
         Handler h = HANDLERS.get(onHit.type());
         if (h != null) h.critical(event, onHit.strength());
+    }
+
+    public static float songDamage(Element.OnHit onHit, LivingEntity target, LivingEntity attacker, float amount) {
+        Handler h = HANDLERS.get(onHit.type());
+        return h == null ? amount : h.songDamage(target, attacker, amount, onHit.strength());
     }
 
     public static void afterHit(Element.OnHit onHit, LivingEntity target, LivingEntity attacker, float damage) {
@@ -127,10 +137,13 @@ public final class OnHitEffects {
         });
         id("insight", new Handler() { // Wisdom: chance for +50% damage
             @Override public void incoming(LivingIncomingDamageEvent e, LivingEntity t, LivingEntity a, float s) {
-                if (a.getRandom().nextFloat() < s) {
-                    e.setAmount(e.getAmount() * 1.5f);
-                    particles(t, ParticleTypes.ENCHANTED_HIT, 10);
-                }
+                e.setAmount(songDamage(t, a, e.getAmount(), s));
+            }
+
+            @Override public float songDamage(LivingEntity t, LivingEntity a, float amount, float s) {
+                if (a.getRandom().nextFloat() >= s) return amount;
+                particles(t, ParticleTypes.ENCHANTED_HIT, 10);
+                return amount * 1.5f;
             }
         });
 
@@ -147,6 +160,11 @@ public final class OnHitEffects {
         id("shield_break", new Handler() { // Sound: knocks a raised shield down, like an axe
             @Override public void incoming(LivingIncomingDamageEvent e, LivingEntity t, LivingEntity a, float s) {
                 if (t instanceof Player p && p.isBlocking()) p.disableShield();
+            }
+
+            @Override public float songDamage(LivingEntity t, LivingEntity a, float amount, float s) {
+                if (t instanceof Player p && p.isBlocking()) p.disableShield();
+                return amount;
             }
         });
         id("ward", new Handler() { // Shield: the Pledger gains a little absorption per hit, up to 2 hearts
@@ -182,7 +200,11 @@ public final class OnHitEffects {
         // Ring 3
         id("smite", new Handler() { // Light: bonus against the undead, and the target glows
             @Override public void incoming(LivingIncomingDamageEvent e, LivingEntity t, LivingEntity a, float s) {
-                if (t.getType().is(EntityTypeTags.UNDEAD)) e.setAmount(e.getAmount() * (1f + s));
+                e.setAmount(songDamage(t, a, e.getAmount(), s));
+            }
+
+            @Override public float songDamage(LivingEntity t, LivingEntity a, float amount, float s) {
+                return t.getType().is(EntityTypeTags.UNDEAD) ? amount * (1f + s) : amount;
             }
 
             @Override public void afterHit(LivingEntity t, LivingEntity a, float d, float s) {
@@ -238,6 +260,10 @@ public final class OnHitEffects {
             @Override public void incoming(LivingIncomingDamageEvent e, LivingEntity t, LivingEntity a, float s) {
                 e.setAmount(e.getAmount() + s);
             }
+
+            @Override public float songDamage(LivingEntity t, LivingEntity a, float amount, float s) {
+                return amount + s;
+            }
         });
         id("freeze", new Handler() { // Ice: builds freezing like powder snow; strength is ticks per hit
             @Override public void afterHit(LivingEntity t, LivingEntity a, float d, float s) {
@@ -258,6 +284,10 @@ public final class OnHitEffects {
         id("starfall", new Handler() { // Star: stronger critical hits
             @Override public void critical(CriticalHitEvent e, float s) {
                 if (e.isVanillaCritical()) e.setDamageMultiplier(e.getDamageMultiplier() * (1f + s));
+            }
+
+            @Override public float songDamage(LivingEntity t, LivingEntity a, float amount, float s) {
+                return amount * (1f + s); // a song always lands like a critical hit
             }
         });
     }

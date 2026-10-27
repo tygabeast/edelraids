@@ -20,7 +20,12 @@ import com.tygabeast.edelraids.data.EdelRaidData;
 import com.tygabeast.edelraids.data.Elemental;
 import com.tygabeast.edelraids.data.Elements;
 import com.tygabeast.edelraids.entity.EdelRaidEntity;
+import com.tygabeast.edelraids.bond.BondMessages;
 import com.tygabeast.edelraids.item.EdelTwinItem;
+import com.tygabeast.edelraids.song.SongManager;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import com.tygabeast.edelraids.item.EdelWeaponItem;
 import net.neoforged.neoforge.event.entity.living.LivingSwapItemsEvent;
 import com.tygabeast.edelraids.registry.ModComponents;
@@ -62,6 +67,12 @@ public final class CommonEvents {
         bus.addListener(CommonEvents::onEntityJoin);
         bus.addListener(CommonEvents::onLogin);
         bus.addListener(CommonEvents::onSwapHands);
+        bus.addListener((PlayerTickEvent.Post e) -> {
+            if (e.getEntity() instanceof ServerPlayer p) SongManager.tickPlayer(p);
+        });
+        bus.addListener((ServerTickEvent.Post e) -> SongManager.tickFields(e.getServer().getTickCount()));
+        bus.addListener((PlayerEvent.PlayerLoggedOutEvent e) -> SongManager.forget(e.getEntity().getUUID()));
+        bus.addListener((ServerStoppedEvent e) -> SongManager.clearFields());
         bus.addListener(EventPriority.HIGHEST, CommonEvents::onDeath);
         bus.addListener(CommonEvents::onContainerClose);
         bus.addListener(CommonEvents::onEntityInteract);
@@ -93,6 +104,7 @@ public final class CommonEvents {
         if (target.level().isClientSide) return;
         DamageSource src = event.getSource();
         if (!(src.getEntity() instanceof LivingEntity attacker)) return;
+        if (target instanceof ServerPlayer warded && !src.is(DamageTypes.THORNS)) SongManager.onWardedHit(warded, attacker);
 
         EdelRaidData weapon = weaponHit(src);
         ResourceLocation attackerElement;
@@ -122,6 +134,7 @@ public final class CommonEvents {
         if (weapon == null || !(event.getSource().getEntity() instanceof LivingEntity attacker)) return;
         Element atk = Elements.element(target.level().registryAccess(), weapon.element());
         if (atk != null) OnHitEffects.afterHit(atk.onHit(), target, attacker, event.getNewDamage());
+        if (attacker instanceof ServerPlayer p) SongManager.onWeaponHit(p);
     }
 
     private static void onCritical(CriticalHitEvent event) {
@@ -205,6 +218,7 @@ public final class CommonEvents {
         EdelRaidData updated = d.withBond(bond, awake);
         weapon.set(ModComponents.EDEL_RAID.get(), updated);
         EdelRegistry.get(killer.getServer()).updateSnapshot(updated);
+        BondMessages.announce(killer, d, updated);
         if (awake && !d.awakened()) {
             ReactManager.applyStats(weapon, updated, killer.level().registryAccess(), false);
             killer.displayClientMessage(Component.translatable("message.edelraids.awakened", d.name()), false);

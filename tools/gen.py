@@ -430,6 +430,58 @@ def effect_icon(col):
     return px
 
 
+# Songs: (bond 25, bond 50, full song at bond 100) per element, each (name, shape)
+SONGS = {
+    'earth': [('Ourea Cadence', 'burst'), ('Rhea Sostenuto', 'ward'), ('Gaia Anthem', 'field')],
+    'wind': [('Aura Trill', 'dash'), ('Aeolus Fanfare', 'wave'), ('Anemoi Chorus', 'burst')],
+    'fire': [('Prometheus Toccata', 'call'), ('Hestia Rondo', 'ward'), ('Hephaestus Anthem', 'burst')],
+    'water': [('Nereid Barcarolle', 'wave'), ('Tethys Etude', 'ward'), ('Poseidon Chorus', 'field')],
+    'greenery': [('Dryad Serenade', 'field'), ('Chloris Madrigal', 'call'), ('Demeter Hymn', 'burst')],
+    'wisdom': [('Metis Fugue', 'call'), ('Mnemosyne Prelude', 'ward'), ('Athena Anthem', 'wave')],
+    'beauty': [('Charis Waltz', 'field'), ('Galatea Aria', 'call'), ('Aphrodite Chorus', 'burst')],
+    'sound': [('Echo Reprise', 'wave'), ('Orpheus Ballad', 'field'), ('Apollo Hymn', 'burst')],
+    'shield': [('Aegis Refrain', 'ward'), ('Perseus Coda', 'call'), ('Ajax Chorale', 'field')],
+    'sword': [('Ares Staccato', 'dash'), ('Harpe Sforzando', 'wave'), ('Enyo Anthem', 'burst')],
+    'love': [('Eros Arpeggio', 'call'), ('Himeros Romance', 'field'), ('Psyche Chorus', 'burst')],
+    'void': [('Charybdis Ostinato', 'wave'), ('Tartarus Drone', 'field'), ('Chaos Anthem', 'burst')],
+    'light': [('Eos Aubade', 'dash'), ('Phoebe Cantata', 'call'), ('Helios Hymn', 'burst')],
+    'darkness': [('Erebus Tremolo', 'dash'), ('Hecate Nocturne', 'field'), ('Nyx Chorus', 'burst')],
+    'movement': [('Hermes Presto', 'dash'), ('Talaria Scherzo', 'field'), ('Iris Hymn', 'wave')],
+    'quiet': [('Harpocrates Rest', 'call'), ('Hypnos Lullaby', 'field'), ('Sige Hymn', 'burst')],
+    'life': [('Hygieia Air', 'ward'), ('Asclepius Canticle', 'field'), ('Panacea Hymn', 'burst')],
+    'death': [('Keres Dirge', 'call'), ('Charon Elegy', 'field'), ('Thanatos Requiem', 'burst')],
+    'thunder': [('Astrape Glissando', 'call'), ('Keraunos Timpani', 'burst'), ('Zeus Anthem', 'field')],
+    'steel': [('Talos March', 'dash'), ('Adamant Canon', 'ward'), ('Cyclopes Chorus', 'wave')],
+    'ice': [('Khione Carol', 'call'), ('Cocytus Lament', 'field'), ('Hyperborea Chorale', 'burst')],
+    'time': [('Kairos Tempo', 'dash'), ('Horae Round', 'field'), ('Chronos Symphony', 'burst')],
+    'dream': [('Phantasos Fantasia', 'call'), ('Oneiroi Interlude', 'field'), ('Morpheus Hymn', 'burst')],
+    'star': [('Asteria Overture', 'call'), ('Pleiades Septet', 'wave'), ('Astraea Hymn', 'burst')],
+}
+
+# Per shape, per slot (bond 25, bond 50, full): power, size, duration. Costs are 25, 50, 100.
+SHAPE_STATS = {
+    'burst': [(4.0, 3.5, 0), (6.0, 4.5, 0), (12.0, 6.0, 0)],
+    'wave': [(5.0, 5.0, 0), (7.0, 6.0, 0), (12.0, 8.0, 0)],
+    'dash': [(5.0, 6.0, 0), (7.0, 8.0, 0), (12.0, 10.0, 0)],
+    'ward': [(4.0, 3.0, 200), (6.0, 3.0, 300), (10.0, 4.0, 400)],
+    'field': [(1.5, 3.0, 100), (2.0, 4.0, 140), (3.5, 6.0, 200)],
+    'call': [(6.0, 16.0, 0), (8.0, 20.0, 0), (14.0, 24.0, 0)],
+}
+SONG_COSTS = [25, 50, 100]
+
+
+def write_songs():
+    base = os.path.join(DATA, MODID, MODID, 'song')
+    for el, songs in SONGS.items():
+        for slot, (name, shape) in enumerate(songs, start=1):
+            power, size, duration = SHAPE_STATS[shape][slot - 1]
+            obj = {'element': MODID + ':' + el, 'slot': slot, 'shape': shape, 'cost': SONG_COSTS[slot - 1],
+                   'power': power, 'size': size}
+            if duration:
+                obj['duration'] = duration
+            write_json(os.path.join(base, f'{el}_{slot}.json'), obj)
+
+
 def write_registries():
     base = os.path.join(DATA, MODID, MODID)
     for el, _, ring, pos, color, hit, strength in ELEMENTS:
@@ -645,6 +697,15 @@ LANG = {
     'command.edelraids.created': 'Created %s: %s %s, %s.',
     'command.edelraids.unknown_element': 'Unknown element: %s',
     'command.edelraids.unknown_form': 'Unknown weapon form: %s',
+    'key.categories.edelraids': 'Edel Raids',
+    'key.edelraids.sing': 'Sing',
+    'key.edelraids.next_song': 'Next Song',
+    'hud.edelraids.no_song': 'No song yet',
+    'hud.edelraids.song': '%s (%s)',
+    'message.edelraids.no_songs': '%s knows no songs yet (needs bond %s).',
+    'message.edelraids.need_resonance': 'Not enough resonance (%s needed).',
+    'message.edelraids.silenced': 'You are silenced and cannot sing.',
+    'message.edelraids.learned_song': '%s learned %s!',
     'message.edelraids.recovered_lost': '%s was lost from your inventory and has reformed beside you.',
 }
 for _el, _name, *_ in ELEMENTS:
@@ -653,6 +714,9 @@ for _fid, _name, *_ in FORMS:
     LANG['edelraids.form.edelraids.' + _fid] = _name
 for _eid, _name, _ in EFFECTS:
     LANG['effect.edelraids.' + _eid] = _name
+for _el, _songs in SONGS.items():
+    for _slot, (_name, _shape) in enumerate(_songs, start=1):
+        LANG[f'song.edelraids.{_el}_{_slot}'] = _name
 
 
 FORM_INDEX_JAVA = """package com.tygabeast.edelraids.client;
@@ -702,6 +766,7 @@ def main():
     for eid, _, col in EFFECTS:
         write_png(os.path.join(ASSETS, 'textures', 'mob_effect', eid + '.png'), 18, 18, effect_icon(col))
     write_registries()
+    write_songs()
 
     write_json(os.path.join(ASSETS, 'models', 'item', 'edel_weapon.json'), weapon_item_model())
     write_json(os.path.join(ASSETS, 'models', 'item', 'edel_twin.json'), weapon_item_model())

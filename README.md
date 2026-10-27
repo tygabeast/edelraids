@@ -20,6 +20,8 @@ not affiliated with or endorsed by its rights holders.
 | Info | `/edelraids info` while looking at her or holding her |
 | Bow form | Hold use to draw and release to fire; needs no arrows. Sneak + use still reforms her |
 | Paired forms | Twin blades and gauntlets: while she is in your main hand, her second blade or gauntlet appears in an empty off hand. With Better Combat you dual-wield them |
+| Sing | **R** (rebindable) while holding her: sings the selected song if you have the resonance |
+| Next song | **Z** (rebindable): cycles through the songs she knows |
 | Set bond (operators) | `/edelraids bond <value>` while looking at her or holding her |
 | Create one (operators) | `/edelraids create <element> [form] [quality 1-3]`, any element including ring 4 |
 
@@ -29,7 +31,20 @@ Rules:
 - Her weapon's durability is her health (10 wear = 1 health). If it breaks she is forced out, wounded, and recovers over time.
 - No permadeath: lethal damage leaves her wounded. Only `/kill` removes her for good; falling into the void sends her home.
 - She reforms if her weapon is dropped, if her Pledger dies, or if her weapon is put in a container and the container is closed.
-- Bond rises by 1 per hostile mob her Pledger kills with her weapon (placeholder). At 100 the weapon awakens: extra fins and +1 damage.
+- Bond rises by 1 per hostile mob her Pledger kills with her weapon, and by 1 for every 5 minutes she spends within
+  16 blocks of her Pledger as a companion. At 100 the weapon awakens: extra details and +1 damage.
+
+## Resonance and songs
+
+- Each hit with her weapon form (or an arrow from her bow) adds 5 resonance, up to 100. After 10 seconds without a hit
+  it drains at 2 per second. The meter shows to the right of the hotbar while you hold her.
+- Each element has three songs: one at bond 25 (costs 25), one at bond 50 (costs 50), and her full song when her
+  weapon awakens (costs 100). Songs carry her element's effect and ring advantage, and need no cooldown beyond 1 second.
+- Song shapes: **Burst** (everything around you), **Wave** (a cone in front), **Dash** (you lunge forward and strike
+  what you pass), **Ward** (absorption; attackers take her element's effect and a little damage back), **Field**
+  (a zone that pulses every half second), **Call** (strikes what you look at).
+- Songs never hit you, your allies, anything you own, or other players unless PvP is on. Silenced players cannot sing.
+- All 72 song names and numbers are data files (`data/<namespace>/edelraids/song/`).
 - If her weapon item is ever lost while she is Reacted (removed by a command, or a mod that added data to it was
   uninstalled), she reforms beside her Pledger the next time they log in.
 - Elements follow the four glittering rings: +25% damage against the element you beat, −20% against the one that beats you.
@@ -104,6 +119,14 @@ gradle build              # jar in build/libs
 ```
 
 GeckoLib is a compile-only dependency resolved from its official Maven; it is never bundled.
+
+## 0.3.0 changes
+
+- Resonance meter, 72 songs in six shapes, and the Sing (R) and Next Song (Z) keys.
+- Bond also grows from time together; Pledgers are told when she learns a song.
+- Songs are a new datapack registry (`edelraids:song`).
+- Cleanup: Sword's armor piercing and Sound's shield breaking share their logic with songs; no unused imports or
+  missing language entries remain.
 
 ## 0.2.2 changes
 

@@ -1,0 +1,9 @@
+{
+  "element": "edelraids:greenery",
+  "slot": 1,
+  "shape": "field",
+  "cost": 25,
+  "power": 1.5,
+  "size": 3.0,
+  "duration": 100
+}

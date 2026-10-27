@@ -9,6 +9,7 @@ import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.client.renderer.item.ItemPropertyFunction;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 
 /** Client-only wiring, called from the mod constructor only on the physical client. */
@@ -18,6 +19,9 @@ public final class ClientSetup {
     public static void init(IEventBus modBus) {
         modBus.addListener(ClientSetup::onRegisterRenderers);
         modBus.addListener(ClientSetup::onClientSetup);
+        modBus.addListener(SongClient::registerKeys);
+        NeoForge.EVENT_BUS.addListener(SongClient::onClientTick);
+        NeoForge.EVENT_BUS.addListener(SongClient::onRenderGui);
     }
 
     /** The edelraids:form property picks each form's item model, which holds that form's hand positions. */

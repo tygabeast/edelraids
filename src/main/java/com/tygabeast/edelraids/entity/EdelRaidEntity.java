@@ -2,6 +2,7 @@ package com.tygabeast.edelraids.entity;
 
 import com.tygabeast.edelraids.Config;
 import com.tygabeast.edelraids.EdelRaids;
+import com.tygabeast.edelraids.bond.BondMessages;
 import com.tygabeast.edelraids.bond.EdelRegistry;
 import com.tygabeast.edelraids.bond.ReactManager;
 import com.tygabeast.edelraids.data.EdelRaidData;
@@ -96,6 +97,8 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
     private boolean awakened;
     private long stamp;
     private int woundedTicks;
+    /** Ticks spent near her Pledger since the last bond point from time together. */
+    private int companionTicks;
     /** Her weapon item as last held, minus her data: keeps enchantments, names and other mods' data across reforms. */
     private ItemStack storedWeapon = ItemStack.EMPTY;
     /** Server only: who asked her to React (cleared when React finishes or is cancelled). */
@@ -316,11 +319,30 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
             }
         }
 
+        if (tickCount % 20 == 0) companionBond();
+
         int regen = Config.REGEN_INTERVAL.get();
         if (regen > 0 && tickCount % regen == 0 && getHealth() < getMaxHealth()) heal(1f);
 
         // Cheap stale-copy check: one HashMap lookup every 2 seconds, offset per entity so they don't all land on one tick.
         if ((tickCount + getId()) % 40 == 0) validateAgainstRegistry();
+    }
+
+    /** Every second: if her Pledger is within 16 blocks, count the time; each full interval adds 1 bond. */
+    private void companionBond() {
+        int need = Config.BOND_COMPANION_TICKS.get();
+        if (need <= 0 || !isTame() || !(getOwner() instanceof ServerPlayer owner) || owner.level() != level()
+                || owner.distanceToSqr(this) > 256.0) return;
+        companionTicks += 20;
+        if (companionTicks < need) return;
+        companionTicks = 0;
+        EdelRaidData before = toData();
+        int newBond = bond + 1;
+        setBond(newBond, awakened || newBond >= Config.AWAKEN_BOND.get());
+        BondMessages.announce(owner, before, toData());
+        if (awakened && !before.awakened()) {
+            owner.displayClientMessage(Component.translatable("message.edelraids.awakened", edelName), false);
+        }
     }
 
     private void validateAgainstRegistry() {
@@ -428,6 +450,7 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
         tag.putLong("Stamp", stamp);
         tag.putBoolean("Wounded", isWounded());
         tag.putInt("WoundedTicks", woundedTicks);
+        tag.putInt("CompanionTicks", companionTicks);
         if (!storedWeapon.isEmpty()) tag.put("Weapon", storedWeapon.save(registryAccess()));
     }
 
@@ -446,6 +469,7 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
         stamp = tag.getLong("Stamp");
         entityData.set(DATA_WOUNDED, tag.getBoolean("Wounded"));
         woundedTicks = tag.getInt("WoundedTicks");
+        companionTicks = tag.getInt("CompanionTicks");
         storedWeapon = tag.contains("Weapon") ? ItemStack.parse(registryAccess(), tag.get("Weapon")).orElse(ItemStack.EMPTY) : ItemStack.EMPTY;
         refreshColor();
     }

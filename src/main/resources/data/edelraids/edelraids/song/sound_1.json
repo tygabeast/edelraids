@@ -1,0 +1,8 @@
+{
+  "element": "edelraids:sound",
+  "slot": 1,
+  "shape": "wave",
+  "cost": 25,
+  "power": 5.0,
+  "size": 5.0
+}

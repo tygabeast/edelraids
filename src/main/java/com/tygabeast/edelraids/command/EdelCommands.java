@@ -4,6 +4,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.tygabeast.edelraids.Config;
+import com.tygabeast.edelraids.bond.BondMessages;
 import com.tygabeast.edelraids.bond.EdelRegistry;
 import com.tygabeast.edelraids.bond.ReactManager;
 import com.tygabeast.edelraids.data.EdelRaidData;
@@ -129,7 +130,9 @@ public final class EdelCommands {
         boolean awake = value >= Config.AWAKEN_BOND.get();
         EdelRaidEntity e = lookedAt(p);
         if (e != null) {
+            EdelRaidData before = e.toData();
             e.setBond(value, awake);
+            BondMessages.announce(p, before, e.toData());
         } else {
             ItemStack held = p.getMainHandItem();
             EdelRaidData d = EdelWeaponItem.data(held);
@@ -141,6 +144,7 @@ public final class EdelCommands {
             held.set(ModComponents.EDEL_RAID.get(), updated);
             ReactManager.applyStats(held, updated, p.level().registryAccess(), false);
             EdelRegistry.get(p.getServer()).updateSnapshot(updated);
+            BondMessages.announce(p, d, updated);
         }
         ctx.getSource().sendSuccess(() -> Component.translatable("command.edelraids.bond_set", value), true);
         return 1;

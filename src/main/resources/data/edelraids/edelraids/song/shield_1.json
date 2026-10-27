@@ -1,0 +1,9 @@
+{
+  "element": "edelraids:shield",
+  "slot": 1,
+  "shape": "ward",
+  "cost": 25,
+  "power": 4.0,
+  "size": 3.0,
+  "duration": 200
+}
