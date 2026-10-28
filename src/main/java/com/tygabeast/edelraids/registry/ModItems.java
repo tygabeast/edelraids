@@ -33,6 +33,12 @@ public final class ModItems {
     public static final DeferredItem<DeferredSpawnEggItem> STING_RAID_SPAWN_EGG = REGISTER.register("sting_raid_spawn_egg",
             () -> new DeferredSpawnEggItem(ModEntities.STING_RAID, 0x9FB0A8, 0x5A4A58, new Item.Properties()));
 
+    public static final DeferredItem<DeferredSpawnEggItem> HUNTER_SPAWN_EGG = REGISTER.register("hunter_spawn_egg",
+            () -> new DeferredSpawnEggItem(ModEntities.HUNTER, 0x5B4636, 0x9C8A6A, new Item.Properties()));
+
+    public static final DeferredItem<DeferredSpawnEggItem> HUNTER_MARKSMAN_SPAWN_EGG = REGISTER.register("hunter_marksman_spawn_egg",
+            () -> new DeferredSpawnEggItem(ModEntities.HUNTER_MARKSMAN, 0x46503A, 0x9C8A6A, new Item.Properties()));
+
     /** Revives a subdued Sting Raid (and steadies one you have just freed). */
     public static final DeferredItem<StabilizerItem> STONE_STABILIZER = REGISTER.register("stone_stabilizer",
             () -> new StabilizerItem(new Item.Properties().stacksTo(16), "tooltip.edelraids.stone_stabilizer"));
@@ -48,6 +54,8 @@ public final class ModItems {
                     .displayItems((params, out) -> {
                         out.accept(EDEL_RAID_SPAWN_EGG.get());
                         out.accept(STING_RAID_SPAWN_EGG.get());
+                        out.accept(HUNTER_SPAWN_EGG.get());
+                        out.accept(HUNTER_MARKSMAN_SPAWN_EGG.get());
                         out.accept(STONE_STABILIZER.get());
                         out.accept(REFINED_STABILIZER.get());
                     })

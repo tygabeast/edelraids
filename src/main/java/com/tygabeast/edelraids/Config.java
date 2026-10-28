@@ -23,6 +23,9 @@ public final class Config {
     public static final ModConfigSpec.IntValue REGEN_INTERVAL = B
             .comment("While not wounded she heals 1 health every this many ticks. 0 disables natural healing.")
             .defineInRange("regenIntervalTicks", 100, 0, 6000);
+    public static final ModConfigSpec.IntValue FREED_LINGER_TICKS = B
+            .comment("How long a freed captive Edel Raid you have not bonded, or a freed Sting Raid you had no active slot for, waits before she leaves (6000 = 5 minutes).")
+            .defineInRange("freedLingerTicks", 6000, 20, 72000);
     static { B.pop().push("bond"); }
     public static final ModConfigSpec.IntValue BOND_PER_KILL = B
             .comment("Bond gained when her Pledger kills a hostile mob with her weapon form.")

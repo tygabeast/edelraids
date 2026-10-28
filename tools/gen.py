@@ -9,6 +9,7 @@ import json
 import math
 import os
 import struct
+import gzip
 import zlib
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'src', 'main', 'resources')
@@ -347,6 +348,279 @@ def write_recipes():
             },
             'requirements': [['has_item', 'has_the_recipe']],
             'rewards': {'recipes': [MODID + ':' + name]}})
+
+
+# ------------------------------------------------------------------ NBT (structure templates)
+
+class Tag:
+    """A typed NBT value: kind is one of b s i l f d str list compound intarray."""
+    def __init__(self, kind, value, elem=None):
+        self.kind, self.value, self.elem = kind, value, elem
+
+def B(v): return Tag('b', v)
+def I(v): return Tag('i', v)
+def L(v): return Tag('l', v)
+def D(v): return Tag('d', v)
+def S(v): return Tag('str', v)
+def LIST(kind, values): return Tag('list', values, kind)
+def C(d): return Tag('compound', d)
+
+_IDS = {'b': 1, 's': 2, 'i': 3, 'l': 4, 'f': 5, 'd': 6, 'str': 8, 'list': 9, 'compound': 10, 'intarray': 11}
+
+
+def _payload(t):
+    k = t.kind
+    if k == 'b': return struct.pack('>b', t.value)
+    if k == 's': return struct.pack('>h', t.value)
+    if k == 'i': return struct.pack('>i', t.value)
+    if k == 'l': return struct.pack('>q', t.value)
+    if k == 'f': return struct.pack('>f', t.value)
+    if k == 'd': return struct.pack('>d', t.value)
+    if k == 'str':
+        b = t.value.encode('utf-8')
+        return struct.pack('>H', len(b)) + b
+    if k == 'list':
+        out = struct.pack('>bi', _IDS[t.elem] if t.value else 0, len(t.value))
+        return out + b''.join(_payload(v) for v in t.value)
+    if k == 'compound':
+        out = b''
+        for name, v in t.value.items():
+            nb = name.encode('utf-8')
+            out += struct.pack('>bH', _IDS[v.kind], len(nb)) + nb + _payload(v)
+        return out + b'\x00'
+    if k == 'intarray':
+        return struct.pack('>i', len(t.value)) + b''.join(struct.pack('>i', x) for x in t.value)
+    raise ValueError(k)
+
+
+def write_nbt(path, root):
+    data = struct.pack('>bH', 10, 0) + _payload(root)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'wb') as f:
+        # mtime=0 keeps the file byte-identical between runs
+        with gzip.GzipFile(fileobj=f, mode='wb', mtime=0) as gz:
+            gz.write(data)
+
+
+# ------------------------------------------------------------------ Hunter camp
+
+DATA_VERSION = 3955  # Minecraft 1.21.1
+CAMP_W, CAMP_H, CAMP_D = 17, 6, 17
+CAMP_FLOOR = ['minecraft:grass_block', 'minecraft:coarse_dirt']
+
+# (centre x, centre z) of each cage; a variant uses the first n
+CAGES = [(3, 13), (13, 13), (8, 14)]
+# id, (x, z) of each guard; a variant uses a prefix of each list
+CAMP_HUNTERS = [('hunter', (7.5, 9.5)), ('hunter', (9.5, 7.5))]
+CAMP_MARKSMEN = [('hunter_marksman', (12.5, 7.5)), ('hunter_marksman', (4.5, 7.5))]
+CAMP_STINGS = [('sting_raid', (6.5, 13.5)), ('sting_raid', (10.5, 13.5))]
+# name: (cages, marksmen, sting raids, pool weight)
+CAMP_VARIANTS = {'small': (1, 0, 1, 3), 'medium': (2, 1, 1, 4), 'large': (3, 2, 2, 2)}
+
+
+def camp_blocks(cages):
+    """{(x, y, z): (block, props, nbt)} for one camp. Everything not listed above the floor is air (clears plants)."""
+    blocks = {}
+    for x in range(CAMP_W):
+        for z in range(CAMP_D):
+            near_fire = abs(x - 8) <= 2 and abs(z - 8) <= 2
+            path = ((x * 73856093) ^ (z * 19349663)) % 7 == 0  # scattered worn patches
+            blocks[(x, 0, z)] = ('minecraft:coarse_dirt' if near_fire or path else 'minecraft:grass_block', {'snowy': 'false'} if not (near_fire or path) else {}, None)
+            for y in range(1, CAMP_H):
+                blocks[(x, y, z)] = ('minecraft:air', {}, None)
+
+    def put(x, y, z, block, props=None, nbt=None):
+        blocks[(x, y, z)] = (block, props or {}, nbt)
+
+    # campfire and two log seats
+    put(8, 1, 8, 'minecraft:campfire', {'facing': 'north', 'lit': 'true', 'signal_fire': 'false', 'waterlogged': 'false'})
+    put(6, 1, 8, 'minecraft:stripped_spruce_log', {'axis': 'z'})
+    put(10, 1, 8, 'minecraft:stripped_spruce_log', {'axis': 'z'})
+    # two A-frame tents opening south toward the fire
+    for x0, wool in ((1, 'minecraft:brown_wool'), (11, 'minecraft:light_gray_wool')):
+        for z in range(1, 6):
+            put(x0, 1, z, wool); put(x0 + 4, 1, z, wool)
+            put(x0 + 1, 2, z, wool); put(x0 + 3, 2, z, wool)
+            put(x0 + 2, 3, z, wool)
+        for x in range(x0 + 1, x0 + 4):
+            put(x, 1, 1, wool)
+        put(x0 + 2, 2, 1, wool)
+        put(x0 + 2, 1, 2, 'minecraft:white_carpet')
+    # supplies: loot chest, barrel, crafting table, hay
+    put(6, 1, 2, 'minecraft:chest', {'facing': 'south', 'type': 'single', 'waterlogged': 'false'},
+        C({'id': S('minecraft:chest'), 'LootTable': S(MODID + ':chests/hunter_camp')}))
+    put(7, 1, 2, 'minecraft:barrel', {'facing': 'up', 'open': 'false'})
+    put(9, 1, 2, 'minecraft:crafting_table')
+    put(10, 1, 2, 'minecraft:hay_block', {'axis': 'y'})
+    # lantern posts
+    for x, z in ((6, 11), (10, 11)):
+        put(x, 1, z, 'minecraft:spruce_fence', {'east': 'false', 'west': 'false', 'north': 'false', 'south': 'false', 'waterlogged': 'false'})
+        put(x, 2, z, 'minecraft:lantern', {'hanging': 'false', 'waterlogged': 'false'})
+    # cages: 3x3 iron bars, a spruce gate on the side facing the fire, a slab roof
+    for cx, cz in CAGES[:cages]:
+        ring = [(cx + dx, cz + dz) for dx in (-1, 0, 1) for dz in (-1, 0, 1) if (dx, dz) != (0, 0)]
+        for y in (1, 2):
+            for (x, z) in ring:
+                if y == 1 and (x, z) == (cx, cz - 1):
+                    put(x, y, z, 'minecraft:spruce_fence_gate', {'facing': 'north', 'open': 'false', 'in_wall': 'false', 'powered': 'false'})
+                else:
+                    put(x, y, z, 'minecraft:iron_bars', {})
+        for (x, z) in ring + [(cx, cz)]:
+            put(x, 3, z, 'minecraft:spruce_slab', {'type': 'bottom', 'waterlogged': 'false'})
+    # iron bars join to neighbouring bars
+    for (x, y, z), (block, props, nbt) in list(blocks.items()):
+        if block == 'minecraft:iron_bars':
+            conn = {}
+            for side, (dx, dz) in (('north', (0, -1)), ('south', (0, 1)), ('east', (1, 0)), ('west', (-1, 0))):
+                nb = blocks.get((x + dx, y, z + dz), ('',))[0]
+                conn[side] = 'true' if nb == 'minecraft:iron_bars' else 'false'
+            conn['waterlogged'] = 'false'
+            blocks[(x, y, z)] = (block, conn, nbt)
+    return blocks
+
+
+def camp_entities(cages, marksmen, stings):
+    out = []
+    for cx, cz in CAGES[:cages]:
+        out.append(((cx + 0.5, 1.0, cz + 0.5), {'id': S(MODID + ':edel_raid'), 'Captive': B(1), 'PersistenceRequired': B(1)}))
+    for eid, (x, z) in CAMP_HUNTERS + CAMP_MARKSMEN[:marksmen] + CAMP_STINGS[:stings]:
+        out.append(((x, 1.0, z), {'id': S(MODID + ':' + eid), 'PersistenceRequired': B(1)}))
+    return out
+
+
+def camp_template(cages, marksmen, stings):
+    blocks = camp_blocks(cages)
+    palette, index, entries = [], {}, []
+    for (x, y, z), (block, props, nbt) in sorted(blocks.items()):
+        key = (block, tuple(sorted(props.items())))
+        if key not in index:
+            index[key] = len(palette)
+            state = {'Name': S(block)}
+            if props:
+                state['Properties'] = C({k: S(v) for k, v in sorted(props.items())})
+            palette.append(C(state))
+        e = {'pos': LIST('i', [I(x), I(y), I(z)]), 'state': I(index[key])}
+        if nbt is not None:
+            e['nbt'] = nbt
+        entries.append(C(e))
+    ents = []
+    for (x, y, z), nbt in camp_entities(cages, marksmen, stings):
+        ents.append(C({'pos': LIST('d', [D(x), D(y), D(z)]),
+                       'blockPos': LIST('i', [I(int(math.floor(x))), I(int(y)), I(int(math.floor(z)))]),
+                       'nbt': C(nbt)}))
+    return C({'DataVersion': I(DATA_VERSION),
+              'size': LIST('i', [I(CAMP_W), I(CAMP_H), I(CAMP_D)]),
+              'palette': LIST('compound', palette),
+              'blocks': LIST('compound', entries),
+              'entities': LIST('compound', ents)}), blocks
+
+
+CAMP_BIOMES = ['minecraft:plains', 'minecraft:sunflower_plains', 'minecraft:meadow', 'minecraft:forest',
+               'minecraft:birch_forest', 'minecraft:savanna', 'minecraft:savanna_plateau', 'minecraft:taiga',
+               'minecraft:old_growth_spruce_taiga', 'minecraft:snowy_plains', 'minecraft:badlands', 'minecraft:wooded_badlands']
+
+
+def write_camp():
+    base = os.path.join(DATA, MODID)
+    previews = {}
+    for name, (cages, marksmen, stings, _) in CAMP_VARIANTS.items():
+        tag, blocks = camp_template(cages, marksmen, stings)
+        write_nbt(os.path.join(base, 'structure', 'hunter_camp', name + '.nbt'), tag)
+        previews[name] = {'blocks': [[x, y, z, b] for (x, y, z), (b, _, _) in blocks.items() if b != 'minecraft:air'],
+                          'entities': [[p[0], p[1], p[2], n['id'].value] for p, n in camp_entities(cages, marksmen, stings)]}
+    write_json(os.path.join(base, 'worldgen', 'template_pool', 'hunter_camp', 'start.json'), {
+        'fallback': 'minecraft:empty',
+        'elements': [{'weight': w, 'element': {'element_type': 'minecraft:single_pool_element',
+                                                 'location': MODID + ':hunter_camp/' + name,
+                                                 'projection': 'rigid', 'processors': 'minecraft:empty'}}
+                     for name, (_, _, _, w) in CAMP_VARIANTS.items()]})
+    write_json(os.path.join(base, 'worldgen', 'structure', 'hunter_camp.json'), {
+        'type': 'minecraft:jigsaw', 'biomes': '#' + MODID + ':has_structure/hunter_camp',
+        'step': 'surface_structures', 'spawn_overrides': {}, 'terrain_adaptation': 'beard_thin',
+        'start_pool': MODID + ':hunter_camp/start', 'size': 1, 'start_height': {'absolute': 0},
+        'project_start_to_heightmap': 'WORLD_SURFACE_WG', 'max_distance_from_center': 80, 'use_expansion_hack': False})
+    # About as rare as pillager outposts, and kept away from villages.
+    write_json(os.path.join(base, 'worldgen', 'structure_set', 'hunter_camp.json'), {
+        'structures': [{'structure': MODID + ':hunter_camp', 'weight': 1}],
+        'placement': {'type': 'minecraft:random_spread', 'spacing': 32, 'separation': 8, 'salt': 1748395023,
+                      'frequency_reduction_method': 'default', 'frequency': 0.25,
+                      'exclusion_zone': {'other_set': 'minecraft:villages', 'chunk_count': 6}}})
+    write_json(os.path.join(base, 'tags', 'worldgen', 'biome', 'has_structure', 'hunter_camp.json'),
+               {'replace': False, 'values': CAMP_BIOMES})
+    return previews
+
+
+def item_entry(item, weight, lo=1, hi=1):
+    e = {'type': 'minecraft:item', 'name': item, 'weight': weight}
+    if (lo, hi) != (1, 1):
+        e['functions'] = [{'function': 'minecraft:set_count', 'count': {'type': 'minecraft:uniform', 'min': lo, 'max': hi}}]
+    return e
+
+
+def write_loot():
+    lt = os.path.join(DATA, MODID, 'loot_table')
+    write_json(os.path.join(lt, 'chests', 'hunter_camp.json'), {'type': 'minecraft:chest', 'pools': [{
+        'rolls': {'type': 'minecraft:uniform', 'min': 3, 'max': 6},
+        'entries': [item_entry('minecraft:emerald', 10, 1, 4), item_entry('minecraft:bread', 10, 2, 4),
+                    item_entry('minecraft:iron_ingot', 8, 1, 3), item_entry('minecraft:arrow', 8, 4, 12),
+                    item_entry('minecraft:amethyst_shard', 6, 2, 5), item_entry('minecraft:redstone', 6, 2, 6),
+                    item_entry(MODID + ':stone_stabilizer', 4, 1, 2), item_entry('minecraft:lead', 3),
+                    item_entry('minecraft:name_tag', 1)]}],
+        'random_sequence': MODID + ':chests/hunter_camp'})
+    looting = {'function': 'minecraft:enchanted_count_increase', 'enchantment': 'minecraft:looting',
+               'count': {'type': 'minecraft:uniform', 'min': 0, 'max': 1}}
+    for eid, extra in (('hunter', None), ('hunter_marksman', ('minecraft:arrow', 0, 2))):
+        pools = [{'rolls': 1, 'entries': [{'type': 'minecraft:item', 'name': 'minecraft:emerald', 'functions': [
+            {'function': 'minecraft:set_count', 'count': {'type': 'minecraft:uniform', 'min': 0, 'max': 1}}, looting]}]},
+                 {'rolls': 1, 'conditions': [{'condition': 'minecraft:killed_by_player'},
+                                             {'condition': 'minecraft:random_chance', 'chance': 0.06}],
+                  'entries': [{'type': 'minecraft:item', 'name': MODID + ':stone_stabilizer'}]}]
+        if extra:
+            pools.append({'rolls': 1, 'entries': [{'type': 'minecraft:item', 'name': extra[0], 'functions': [
+                {'function': 'minecraft:set_count', 'count': {'type': 'minecraft:uniform', 'min': extra[1], 'max': extra[2]}}, looting]}]})
+        write_json(os.path.join(lt, 'entities', eid + '.json'),
+                   {'type': 'minecraft:entity', 'pools': pools, 'random_sequence': MODID + ':entities/' + eid})
+
+
+# ------------------------------------------------------------------ Hunter textures (vanilla humanoid layout)
+
+HUNTER_SKIN = (214, 170, 136, 255)
+HUNTER_HAIR = (58, 44, 36, 255)
+LEATHER = (118, 86, 58, 255)
+BOOTS = (62, 48, 40, 255)
+BELT = (44, 36, 30, 255)
+BUCKLE = (196, 170, 96, 255)
+
+
+def hunter_texture(cloak, marksman):
+    px = canvas(64, 64)
+    # head 8x8x8 at 0,0
+    box_uv(px, 0, 0, 8, 8, 8, {'top': HUNTER_HAIR, 'bottom': HUNTER_SKIN, 'right': HUNTER_HAIR, 'front': HUNTER_SKIN,
+                                'left': HUNTER_HAIR, 'back': HUNTER_HAIR})
+    rect(px, 8, 8, 8, 2, HUNTER_HAIR)
+    rect(px, 10, 11, 1, 1, (40, 40, 44, 255))
+    rect(px, 13, 11, 1, 1, (40, 40, 44, 255))
+    rect(px, 9, 14, 6, 2, shade(HUNTER_SKIN, 0.8) if not marksman else shade(cloak, 0.8))  # stubble, or a face scarf
+    # hood on the hat layer (32,0): open at the front and bottom so the face shows
+    box_uv(px, 32, 0, 8, 8, 8, all_faces(cloak))
+    rect(px, 40, 8, 8, 8, (0, 0, 0, 0))
+    rect(px, 48, 0, 8, 8, (0, 0, 0, 0))
+    rect(px, 40, 8, 8, 1, shade(cloak, 0.85))
+    # body 8x12x4 at 16,16: cloak over a leather jerkin, with a belt
+    box_uv(px, 16, 16, 8, 12, 4, all_faces(cloak))
+    rect(px, 22, 20, 4, 12, LEATHER)
+    rect(px, 16, 28, 24, 1, BELT)
+    rect(px, 23, 28, 2, 1, BUCKLE)
+    if marksman:  # quiver strap across the chest
+        for i in range(8):
+            px[20 + i][20 + i] = BELT
+    # arm 4x12x4 at 40,16 (the left arm mirrors it): sleeve, then glove
+    box_uv(px, 40, 16, 4, 12, 4, all_faces(cloak))
+    rect(px, 40, 28, 16, 4, LEATHER)
+    # leg 4x12x4 at 0,16: trousers and boots
+    box_uv(px, 0, 16, 4, 12, 4, all_faces(shade(LEATHER, 0.7)))
+    rect(px, 0, 28, 16, 4, BOOTS)
+    return px
 
 
 # ------------------------------------------------------------------ Longsword weapon form (placeholder)
@@ -876,6 +1150,13 @@ LANG = {
     'message.edelraids.learned_song': '%s learned %s!',
     'message.edelraids.recovered_lost': '%s was lost from your inventory and has reformed beside you.',
     'entity.edelraids.sting_raid': 'Sting Raid',
+    'entity.edelraids.hunter': 'Hunter',
+    'entity.edelraids.hunter_marksman': 'Hunter Marksman',
+    'item.edelraids.hunter_spawn_egg': 'Hunter Spawn Egg',
+    'item.edelraids.hunter_marksman_spawn_egg': 'Hunter Marksman Spawn Egg',
+    'message.edelraids.captive_guarded': '%s is still guarded. Deal with the hunters and their Sting Raids nearby first.',
+    'message.edelraids.captive_freed': '%s is free! Right-click her again to become her Pledger, or she will leave in a few minutes.',
+    'message.edelraids.sting_freed_lingering': 'You freed %s, but you already have %s active Sting Raids. She will wait here for a few minutes: let one of yours rest (sneak + right-click) and right-click her to take her along.',
     'item.edelraids.sting_raid_spawn_egg': 'Sting Raid Spawn Egg',
     'item.edelraids.stone_stabilizer': 'Stone Stabilizer',
     'item.edelraids.refined_stabilizer': 'Refined Stabilizer',
@@ -919,7 +1200,7 @@ CONFIG_LANG = {
     'orientation.horizontal': 'Horizontal', 'orientation.vertical': 'Vertical',
     'reacting': 'Reacting', 'transformTicks': 'Transform Time (ticks)', 'reactRange': 'React Range',
     'wearPerHit': 'Wear per Hit',
-    'companion': 'Companion', 'woundedTicks': 'Wounded Time (ticks)', 'regenIntervalTicks': 'Healing Interval (ticks)',
+    'companion': 'Companion', 'freedLingerTicks': 'Freed Wait Time (ticks)', 'woundedTicks': 'Wounded Time (ticks)', 'regenIntervalTicks': 'Healing Interval (ticks)',
     'bond': 'Bond', 'bondPerKill': 'Bond per Kill', 'awakenBond': 'Awakening Bond',
     'awakenDamageBonus': 'Awakened Damage Bonus', 'bondCompanionTicks': 'Companionship Interval (ticks)',
     'songs': 'Songs', 'songsEnabled': 'Songs Enabled', 'songBond1': 'First Song Bond', 'songBond2': 'Second Song Bond',
@@ -991,6 +1272,13 @@ def main():
         write_json(os.path.join(ASSETS, 'models', 'item', name + '.json'),
                    {'parent': 'minecraft:item/generated', 'textures': {'layer0': MODID + ':item/' + name}})
     write_recipes()
+    camp_previews = write_camp()
+    write_loot()
+    write_png(os.path.join(ASSETS, 'textures', 'entity', 'hunter.png'), 64, 64, hunter_texture((92, 70, 54, 255), False))
+    write_png(os.path.join(ASSETS, 'textures', 'entity', 'hunter_marksman.png'), 64, 64, hunter_texture((72, 82, 60, 255), True))
+    preview_dir = os.environ.get('EDELRAIDS_PREVIEW_DIR')
+    if preview_dir:  # layout data for an optional preview render; never written into the project
+        write_json(os.path.join(preview_dir, 'camps.json'), camp_previews)
 
     write_png(os.path.join(ASSETS, 'textures', 'item', 'weapon', 'longsword.png'), 32, 32, longsword_texture())
     write_json(os.path.join(ASSETS, 'geo', 'item', 'weapon', 'longsword.geo.json'), longsword_geo())
@@ -1012,7 +1300,8 @@ def main():
                            'edelraids', 'client', 'FormIndex.java'), 'w', newline='\n') as fj:
         fj.write(FORM_INDEX_JAVA.replace('@FORMS@', ',\n'.join('            "' + f[0] + '"' for f in FORMS)))
     write_json(os.path.join(ASSETS, 'models', 'item', 'edel_raid_spawn_egg.json'), {'parent': 'minecraft:item/template_spawn_egg'})
-    write_json(os.path.join(ASSETS, 'models', 'item', 'sting_raid_spawn_egg.json'), {'parent': 'minecraft:item/template_spawn_egg'})
+    for egg in ('sting_raid', 'hunter', 'hunter_marksman'):
+        write_json(os.path.join(ASSETS, 'models', 'item', egg + '_spawn_egg.json'), {'parent': 'minecraft:item/template_spawn_egg'})
     write_json(os.path.join(ASSETS, 'lang', 'en_us.json'), dict(sorted(LANG.items())))
 
     for tag in ('sword', 'sharp_weapon', 'weapon', 'fire_aspect', 'durability', 'bow'):

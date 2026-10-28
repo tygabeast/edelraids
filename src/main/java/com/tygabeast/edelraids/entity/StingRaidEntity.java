@@ -130,6 +130,8 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
     private boolean staleTargetGoal;
     /** A freed Sting Raid told to rest stays near restPos, does not follow, and does not count toward the active limit. */
     private boolean resting;
+    /** Freed but not taken (her rescuer had no free active slot): counts down, and she leaves at 0. */
+    private int lingerTicks;
     @Nullable private BlockPos restPos;
 
     public StingRaidEntity(EntityType<? extends TamableAnimal> type, Level level) {
@@ -268,7 +270,9 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
     public boolean isStaggered() { return flag(F_STAGGERED); }
     public boolean isSubdued() { return flag(F_SUBDUED); }
     public boolean isStabilized() { return flag(F_STABILIZED); }
-    public boolean isHostile() { return !isTame(); }
+    /** A hunter's Sting Raid: not owned, and not freed and waiting for someone to take her. */
+    public boolean isHostile() { return !isTame() && lingerTicks <= 0; }
+    public boolean isLingering() { return !isTame() && lingerTicks > 0; }
     public boolean isResting() { return resting; }
     /** 0-100, in steps of 5 on the client. */
     public int getStrainDisplay() { return entityData.get(DATA_STRAIN) * 5; }
@@ -278,7 +282,13 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
 
     /** Subdued Sting Raids and busy (transforming or wounded) Edel Raids are out of the fight: nobody targets them. */
     public static boolean isOutOfFight(LivingEntity e) {
-        return (e instanceof StingRaidEntity s && s.isSubdued()) || (e instanceof EdelRaidEntity r && r.isBusy());
+        return (e instanceof StingRaidEntity s && s.isSubdued()) || (e instanceof EdelRaidEntity r && (r.isBusy() || r.isCaptive()));
+    }
+
+    /** A hunter or an unbeaten hunter's Sting Raid within 16 blocks: a camp's captives cannot be freed while one remains. */
+    public static boolean guardsNear(LivingEntity captive) {
+        return !captive.level().getEntitiesOfClass(LivingEntity.class, captive.getBoundingBox().inflate(16.0),
+                e -> e.isAlive() && (e instanceof HunterEntity || (e instanceof StingRaidEntity s && s.isHostile() && !s.isSubdued()))).isEmpty();
     }
 
     @Override
@@ -305,6 +315,11 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
         }
         if (isOrderedToSit() && (isReacted() || isReacting())) revert(false);
 
+        if (isLingering() && --lingerTicks == 0) {
+            EdelRaids.debug("Sting Raid {} left after nobody took her", stingName);
+            escape();
+            return;
+        }
         if (isSubdued()) {
             if (isHostile() && subduedTicks > 0 && --subduedTicks == 0) escape();
             return;
@@ -412,22 +427,30 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
     }
 
     /**
-     * She becomes the player's companion: active if they have room under the limit, otherwise resting where she is.
-     * Whatever she was fighting as a hunter's Sting Raid is forgotten.
+     * Freed from the hunters. With a free active slot she joins the player at once; otherwise she waits nearby for a
+     * few minutes for anyone with room to take her, then leaves. Whatever she was fighting before is forgotten.
      */
     public void free(ServerPlayer p) {
-        tame(p);
-        setOrderedToSit(false);
         subduedTicks = 0;
         setLastHurtByMob(null);
         stopTargetGoals(this, targetSelector);
         int limit = Config.STING_LIMIT.get();
-        StingRegistry reg = StingRegistry.get(p.getServer());
-        boolean active = reg.activeCount(p.getUUID()) < limit;
-        setResting(!active);
-        reg.put(p.getUUID(), getUUID(), active);
-        p.displayClientMessage(active ? Component.translatable("message.edelraids.sting_freed", stingName)
-                : Component.translatable("message.edelraids.sting_freed_resting", stingName, limit), false);
+        if (StingRegistry.get(p.getServer()).activeCount(p.getUUID()) < limit) {
+            join(p);
+            p.displayClientMessage(Component.translatable("message.edelraids.sting_freed", stingName), false);
+        } else {
+            lingerTicks = Config.FREED_LINGER_TICKS.get();
+            p.displayClientMessage(Component.translatable("message.edelraids.sting_freed_lingering", stingName, limit), false);
+        }
+    }
+
+    /** She becomes this player's active companion. */
+    private void join(ServerPlayer p) {
+        lingerTicks = 0;
+        tame(p);
+        setOrderedToSit(false);
+        setResting(false);
+        StingRegistry.get(p.getServer()).put(p.getUUID(), getUUID(), true);
     }
 
     private void setResting(boolean rest) {
@@ -490,7 +513,7 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
         boolean refined = held.is(ModItems.REFINED_STABILIZER.get());
         if (!held.isEmpty() && !stabilizer && !refined) return super.mobInteract(player, hand);
         boolean mine = isOwnedBy(player);
-        if (level().isClientSide) return (mine || (isHostile() && isSubdued())) ? InteractionResult.SUCCESS : InteractionResult.PASS;
+        if (level().isClientSide) return (mine || isLingering() || (!isTame() && isSubdued())) ? InteractionResult.SUCCESS : InteractionResult.PASS;
         if (!(player instanceof ServerPlayer sp)) return InteractionResult.PASS;
 
         if (isTame() && !mine) {
@@ -501,9 +524,18 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
             if (!isSubdued()) return InteractionResult.PASS;
             free(sp);
             if (!stabilizer && !refined) {
-                sp.displayClientMessage(Component.translatable("message.edelraids.sting_failing", stingName), false);
+                if (isTame()) sp.displayClientMessage(Component.translatable("message.edelraids.sting_failing", stingName), false);
                 return InteractionResult.SUCCESS;
             }
+        } else if (isLingering() && !stabilizer && !refined) {
+            int limit = Config.STING_LIMIT.get();
+            if (StingRegistry.get(sp.getServer()).activeCount(sp.getUUID()) >= limit) {
+                sp.displayClientMessage(Component.translatable("message.edelraids.sting_limit", limit), true);
+                return InteractionResult.CONSUME;
+            }
+            join(sp);
+            sp.displayClientMessage(Component.translatable(isSubdued() ? "message.edelraids.sting_failing" : "message.edelraids.sting_freed", stingName), false);
+            return InteractionResult.SUCCESS;
         }
 
         if (refined) {
@@ -587,10 +619,10 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
         });
     }
 
-    /** Hunters' Sting Raids never fight each other, and neither do companions of the same owner. */
+    /** Hunters and their Sting Raids never fight each other, and neither do companions of the same owner. */
     @Override
     public boolean isAlliedTo(Entity other) {
-        if (isHostile() && other instanceof StingRaidEntity s && s.isHostile()) return true;
+        if (isHostile() && (other instanceof HunterEntity || (other instanceof StingRaidEntity s && s.isHostile()))) return true;
         return sameOwner(this, other) || super.isAlliedTo(other);
     }
 
@@ -634,7 +666,7 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
             return;
         }
         if (source.is(DamageTypes.FELL_OUT_OF_WORLD) && level() instanceof ServerLevel sl) {
-            if (isHostile()) {
+            if (!isTame()) {
                 escape();
                 return;
             }
@@ -671,6 +703,7 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
         tag.putBoolean("Subdued", isSubdued());
         tag.putInt("SubduedTicks", subduedTicks);
         tag.putBoolean("Resting", resting);
+        tag.putInt("LingerTicks", lingerTicks);
         if (restPos != null) tag.putLong("RestPos", restPos.asLong());
     }
 
@@ -687,6 +720,7 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
         setFlag(F_STABILIZED, tag.getBoolean("Stabilized"));
         subduedTicks = tag.getInt("SubduedTicks");
         resting = tag.getBoolean("Resting");
+        lingerTicks = tag.getInt("LingerTicks");
         if (resting) {
             restPos = tag.contains("RestPos") ? BlockPos.of(tag.getLong("RestPos")) : blockPosition();
             restrictTo(restPos, REST_RADIUS);

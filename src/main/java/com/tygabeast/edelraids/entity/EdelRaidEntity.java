@@ -73,6 +73,7 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
     private static final EntityDataAccessor<Integer> DATA_TRANSFORM = SynchedEntityData.defineId(EdelRaidEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_REFORM = SynchedEntityData.defineId(EdelRaidEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> DATA_WOUNDED = SynchedEntityData.defineId(EdelRaidEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> DATA_CAPTIVE = SynchedEntityData.defineId(EdelRaidEntity.class, EntityDataSerializers.BOOLEAN);
 
     private static final RawAnimation IDLE = RawAnimation.begin().thenLoop("animation.edel_raid.idle");
     private static final RawAnimation WALK = RawAnimation.begin().thenLoop("animation.edel_raid.walk");
@@ -99,6 +100,8 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
     private int woundedTicks;
     /** Ticks spent near her Pledger since the last bond point from time together. */
     private int companionTicks;
+    /** Freed from a camp but not bonded: counts down, and she leaves at 0. 0 also means she is not lingering. */
+    private int lingerTicks;
     /** Her weapon item as last held, minus her data: keeps enchantments, names and other mods' data across reforms. */
     private ItemStack storedWeapon = ItemStack.EMPTY;
     /** Server only: who asked her to React (cleared when React finishes or is cancelled). */
@@ -125,6 +128,7 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
         builder.define(DATA_TRANSFORM, 0);
         builder.define(DATA_REFORM, 0);
         builder.define(DATA_WOUNDED, false);
+        builder.define(DATA_CAPTIVE, false);
     }
 
     @Override
@@ -188,7 +192,9 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
         awakened = false;
         stamp = 1L;
         refreshColor();
-        if (level() instanceof ServerLevel sl) EdelRegistry.get(sl.getServer()).setWorld(edelId, getUUID(), stamp);
+        // Camps roll their captives during world generation, off the server thread: the registry is not thread-safe, so
+        // she registers herself on her first tick instead (validateAgainstRegistry adds a missing entry).
+        if (level() instanceof ServerLevel sl && sl.getServer().isSameThread()) EdelRegistry.get(sl.getServer()).setWorld(edelId, getUUID(), stamp);
     }
 
     /** A random name for /edelraids create when none is given. */
@@ -247,6 +253,8 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
     public int getTransformTicks() { return entityData.get(DATA_TRANSFORM); }
     public int getReformTicks() { return entityData.get(DATA_REFORM); }
     public boolean isWounded() { return entityData.get(DATA_WOUNDED); }
+    /** Held in a hunter camp's cage: she cannot move, be hurt or be bonded until freed. */
+    public boolean isCaptive() { return entityData.get(DATA_CAPTIVE); }
 
     /** Transforming, reforming or wounded: no fighting, no new React. */
     public boolean isBusy() {
@@ -288,7 +296,7 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
 
     @Override
     public boolean isImmobile() {
-        return super.isImmobile() || getTransformTicks() > 0 || getReformTicks() > 0;
+        return super.isImmobile() || getTransformTicks() > 0 || getReformTicks() > 0 || isCaptive();
     }
 
     @Override
@@ -324,6 +332,11 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
             }
         }
 
+        if (!isTame() && lingerTicks > 0 && --lingerTicks == 0) {
+            leave();
+            return;
+        }
+
         if (tickCount % 20 == 0) companionBond();
 
         int regen = Config.REGEN_INTERVAL.get();
@@ -350,6 +363,16 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
         }
     }
 
+    /** A freed captive nobody bonded thanks her rescuer and goes her own way. */
+    private void leave() {
+        if (level() instanceof ServerLevel sl) {
+            if (edelId != null) EdelRegistry.get(sl.getServer()).remove(edelId);
+            sl.sendParticles(net.minecraft.core.particles.ParticleTypes.POOF, getX(), getY(0.5), getZ(), 16, 0.3, 0.6, 0.3, 0.02);
+        }
+        EdelRaids.debug("Freed Edel Raid {} left unbonded", edelName);
+        discard();
+    }
+
     private void validateAgainstRegistry() {
         if (!(level() instanceof ServerLevel sl) || edelId == null) return;
         EdelRegistry reg = EdelRegistry.get(sl.getServer());
@@ -374,7 +397,19 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
             sp.displayClientMessage(Component.translatable(isWounded() ? "message.edelraids.is_wounded" : "message.edelraids.busy", edelName), true);
             return InteractionResult.CONSUME;
         }
+        if (isCaptive()) {
+            if (StingRaidEntity.guardsNear(this)) {
+                sp.displayClientMessage(Component.translatable("message.edelraids.captive_guarded", edelName), true);
+                return InteractionResult.CONSUME;
+            }
+            entityData.set(DATA_CAPTIVE, false);
+            lingerTicks = Config.FREED_LINGER_TICKS.get();
+            playSound(net.minecraft.sounds.SoundEvents.AMETHYST_BLOCK_CHIME, 1.0f, 1.2f);
+            sp.displayClientMessage(Component.translatable("message.edelraids.captive_freed", edelName), false);
+            return InteractionResult.SUCCESS;
+        }
         if (!isTame()) {
+            lingerTicks = 0;
             tame(sp);
             setOrderedToSit(false);
             bond = 0;
@@ -431,7 +466,7 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
     @Override
     public boolean isInvulnerableTo(DamageSource source) {
         if (source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) return super.isInvulnerableTo(source);
-        return isBusy() || super.isInvulnerableTo(source);
+        return isBusy() || isCaptive() || super.isInvulnerableTo(source);
     }
 
     /** No permadeath: lethal damage leaves her wounded. Only /kill truly removes her; the void sends her home. */
@@ -477,6 +512,8 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
         tag.putBoolean("Wounded", isWounded());
         tag.putInt("WoundedTicks", woundedTicks);
         tag.putInt("CompanionTicks", companionTicks);
+        tag.putBoolean("Captive", isCaptive());
+        tag.putInt("LingerTicks", lingerTicks);
         if (!storedWeapon.isEmpty()) tag.put("Weapon", storedWeapon.save(registryAccess()));
     }
 
@@ -496,6 +533,8 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
         entityData.set(DATA_WOUNDED, tag.getBoolean("Wounded"));
         woundedTicks = tag.getInt("WoundedTicks");
         companionTicks = tag.getInt("CompanionTicks");
+        entityData.set(DATA_CAPTIVE, tag.getBoolean("Captive"));
+        lingerTicks = tag.getInt("LingerTicks");
         storedWeapon = tag.contains("Weapon") ? ItemStack.parse(registryAccess(), tag.get("Weapon")).orElse(ItemStack.EMPTY) : ItemStack.EMPTY;
         refreshColor();
     }
@@ -515,7 +554,7 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
             if (getTransformTicks() > 0) return state.setAndContinue(REACT);
             if (getReformTicks() > 0) return state.setAndContinue(REFORM);
             if (isWounded()) return state.setAndContinue(state.isMoving() ? WOUNDED_WALK : WOUNDED_IDLE);
-            if (isInSittingPose()) return state.setAndContinue(SIT);
+            if (isInSittingPose() || isCaptive()) return state.setAndContinue(SIT);
             return state.setAndContinue(state.isMoving() ? WALK : IDLE);
         }));
     }

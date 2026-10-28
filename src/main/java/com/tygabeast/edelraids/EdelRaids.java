@@ -2,6 +2,7 @@ package com.tygabeast.edelraids;
 
 import com.tygabeast.edelraids.entity.EdelRaidEntity;
 import com.tygabeast.edelraids.entity.StingRaidEntity;
+import com.tygabeast.edelraids.entity.HunterEntity;
 import com.tygabeast.edelraids.event.CommonEvents;
 import com.tygabeast.edelraids.network.ModNetwork;
 import com.tygabeast.edelraids.registry.ModAttachments;
@@ -45,6 +46,8 @@ public final class EdelRaids {
     private static void onAttributes(EntityAttributeCreationEvent event) {
         event.put(ModEntities.EDEL_RAID.get(), EdelRaidEntity.createAttributes().build());
         event.put(ModEntities.STING_RAID.get(), StingRaidEntity.createAttributes().build());
+        event.put(ModEntities.HUNTER.get(), HunterEntity.createAttributes().build());
+        event.put(ModEntities.HUNTER_MARKSMAN.get(), HunterEntity.createAttributes().build());
     }
 
     public static ResourceLocation id(String path) {

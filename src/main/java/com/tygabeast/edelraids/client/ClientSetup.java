@@ -25,6 +25,7 @@ public final class ClientSetup {
         // NeoForge's built-in screen (Mods list > Edel Raids > Config) edits both the client and server files.
         container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
         modBus.addListener(ClientSetup::onRegisterRenderers);
+        modBus.addListener(HunterRenderer::registerLayer);
         modBus.addListener(ClientSetup::onClientSetup);
         modBus.addListener(SongClient::registerKeys);
         NeoForge.EVENT_BUS.addListener(SongClient::onClientTick);
@@ -46,5 +47,7 @@ public final class ClientSetup {
     private static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(ModEntities.EDEL_RAID.get(), EdelRaidRenderer::new);
         event.registerEntityRenderer(ModEntities.STING_RAID.get(), StingRaidRenderer::new);
+        event.registerEntityRenderer(ModEntities.HUNTER.get(), ctx -> new HunterRenderer(ctx, "hunter"));
+        event.registerEntityRenderer(ModEntities.HUNTER_MARKSMAN.get(), ctx -> new HunterRenderer(ctx, "hunter_marksman"));
     }
 }

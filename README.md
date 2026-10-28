@@ -11,7 +11,7 @@ not affiliated with or endorsed by its rights holders.
 
 | Action | How |
 | --- | --- |
-| Get an Edel Raid | Creative tab "Edel Raids: Pledged Blades" → Edel Raid Spawn Egg (natural sources come later in phase 3) |
+| Find an Edel Raid | Hunter camps hold captive Edel Raids (see below). Creative: Edel Raid Spawn Egg |
 | Bond (become her Pledger) | Right-click an unbonded Edel Raid with an empty hand |
 | Stay / follow | Right-click her with an empty hand |
 | React | Sneak + right-click her with an empty hand. Takes about 1 second; stay within 16 blocks |
@@ -34,6 +34,21 @@ Rules:
 - Bond rises by 1 per hostile mob her Pledger kills with her weapon, and by 1 for every 5 minutes she spends within
   16 blocks of her Pledger as a companion. At 100 the weapon awakens: extra details and +1 damage.
 
+## Hunter camps
+
+Hunters capture Edel Raids to sell. Their camps (tents, a campfire, a loot chest and iron-barred cages) appear in
+plains, meadows, forests, savannas, taigas, snowy plains and badlands, about as rarely as pillager outposts and never
+near villages. A camp holds 1 to 3 captive Edel Raids, guarded by 2 hunters, up to 2 crossbow marksmen and 1 or 2
+hunter's Sting Raids. `/locate structure edelraids:hunter_camp` finds the nearest one.
+
+- A captive cannot be freed while any hunter or unbeaten hunter's Sting Raid is within 16 blocks. Open her cage's
+  gate and right-click her once they are dealt with.
+- A freed captive is an ordinary unbonded Edel Raid: right-click her again to become her Pledger. If nobody bonds her
+  within 5 minutes, she thanks you and goes her own way.
+- Hunters drop emeralds (marksmen also arrows) and sometimes a Stone Stabilizer; the camp chest has supplies.
+- Camps are datapack worldgen (`data/edelraids/worldgen/...`, the biome tag `edelraids:has_structure/hunter_camp`
+  and the templates in `data/edelraids/structure/hunter_camp/`), so packs can move, retune or remove them.
+
 ## Sting Raids
 
 Sting Raids are girls who have been implanted with an artificial stone. They look like Edel Raids, except that the
@@ -42,7 +57,7 @@ never do.
 
 | Action | How |
 | --- | --- |
-| Meet one | Creative tab → Sting Raid Spawn Egg (a hunter's Sting Raid; hunter camps come in 0.5.0) |
+| Meet one | Hunter camps; creative: Sting Raid Spawn Egg (a hunter's Sting Raid) |
 | Free one | Beat a hunter's Sting Raid: she is subdued, not killed. Right-click her within 2 minutes to free her, or she escapes |
 | Revive her | Use a **Stone Stabilizer** on a subdued Sting Raid. A freed one stays subdued until you do |
 | Steady her stone | Use a **Refined Stabilizer** on a freed Sting Raid once: her stone strains half as fast from then on |
@@ -58,8 +73,8 @@ never do.
 - **Strain:** staying Reacted strains her stone (full in 20 seconds). At full strain she is forced out and staggered
   for 3 seconds, and she can React again once strain falls to half. Her gem flickers faster as strain builds.
 - **Freed Sting Raids** follow, stay and fight like an Edel Raid, but cannot bond, sing, awaken or React with you.
-  Up to 2 can be active (following you) at a time; you can free more, and they rest where you left them until you
-  bring one along. Subduing a hunter's Sting Raid counts as a kill for your Edel Raid's bond.
+  Up to 2 can be active (following you) at a time. One you free while at the limit waits nearby for 5 minutes: let
+  one of yours rest (sneak + right-click) and right-click her to take her along, or she leaves. Subduing a hunter's Sting Raid counts as a kill for your Edel Raid's bond.
 - Companions of the same player (Edel Raids, Sting Raids, wolves and other pets) never target each other.
 - **Stone Stabilizer** (makes 2): amethyst shard above and below, iron ingot either side, redstone in the middle.
   **Refined Stabilizer:** a diamond surrounded by four Stone Stabilizers, with amethyst shards in the corners.
@@ -152,6 +167,16 @@ gradle build              # jar in build/libs
 ```
 
 GeckoLib is a compile-only dependency resolved from its official Maven; it is never bundled.
+
+## 0.5.0 changes
+
+- Hunter camps: hunters (sword) and hunter marksmen (crossbow) with their Sting Raids, guarding 1 to 3 captive Edel
+  Raids in cages. Three camp sizes; natural worldgen in seven biome groups.
+- Freed captives you do not bond, and freed Sting Raids you have no active slot for, wait 5 minutes and then leave
+  (`companion.freedLingerTicks`).
+- Hunters and their Sting Raids are allies; captives cannot be hurt or targeted.
+- Edel Raids rolled during world generation register with the anti-duplication registry on their first tick instead
+  of from the world-generation thread.
 
 ## 0.4.2 changes
 
