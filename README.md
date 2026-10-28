@@ -38,7 +38,7 @@ Rules:
 
 Hunters capture Edel Raids to sell. Their camps (tents, a campfire, a loot chest and iron-barred cages) appear in
 plains, meadows, forests, savannas, taigas, snowy plains and badlands, about as rarely as pillager outposts and never
-near villages. A camp holds 1 to 3 captive Edel Raids, guarded by 2 hunters, up to 2 crossbow marksmen and 1 or 2
+near villages. A camp holds 1 to 3 captive Edel Raids (and always one empty cage), guarded by 2 hunters, up to 2 crossbow marksmen and 1 or 2
 hunter's Sting Raids. `/locate structure edelraids:hunter_camp` finds the nearest one.
 
 - A captive cannot be freed while any hunter or unbeaten hunter's Sting Raid is within 16 blocks. Open her cage's
@@ -58,8 +58,10 @@ Garden.
 
 - Patrols of 1 or 2 agents sometimes appear 32 to 48 blocks from a player in the Overworld (about once every 20
   minutes of play, never two near one player) and wander off when nobody is around.
-- An agent beaten by you or one of your companions yields to you instead of dying (beaten by hunters or anything
-  else, he and his partner simply retreat, and nobody's standing changes). He is cleared of every effect, fire and freezing; nothing but your own hit
+- An agent beaten by you or one of your companions yields to you instead of dying (beaten by anything other than
+  hunters, he and his partner simply retreat, and nobody's standing changes). If hunters or their Sting Raids beat
+  him, he dies and the hunters lock his partner in their camp's empty cage, where she can be freed like any captive;
+  with no camp nearby, she returns to Edel Garden. He is cleared of every effect, fire and freezing; nothing but your own hit
   can harm him, and your companions stop fighting him. Right-click him to spare him (only the player he yielded to can):
   he and his partner withdraw, and your standing with Arc Aile rises. Strike him again to finish him: your standing falls sharply, he leaves an
   Agent's Sigil, and his partner, who chose this life, grieves and returns to Edel Garden. She never bonds with you.
@@ -189,6 +191,12 @@ gradle build              # jar in build/libs
 ```
 
 GeckoLib is a compile-only dependency resolved from its official Maven; it is never bundled.
+
+## 0.6.2 changes
+
+- Every hunter camp has one extra, empty cage.
+- An Arc Aile agent beaten by hunters (or their Sting Raids) now dies, and his partner is locked in the nearest empty
+  cage within 24 blocks as a captive; with none nearby she returns to Edel Garden.
 
 ## 0.6.1 changes
 

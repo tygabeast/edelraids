@@ -251,7 +251,15 @@ public class ArcAileAgentEntity extends PathfinderMob {
             // A blow with no attacker (burning from a Fire Edel Raid, a fall): whoever last hit him, if a player's side.
             if (won == null && source.getEntity() == null) won = victorOf(getLastHurtByMob());
             if (won == null) {
-                // Beaten by hunters, other mobs or the world: he kneels to no bystander, and retreats with his partner.
+                Entity by = source.getEntity() != null ? source.getEntity() : getLastHurtByMob();
+                if (isHuntersSide(by)) {
+                    // The rare loss to hunters: he dies, and they cage his partner.
+                    EdelRaids.debug("Arc Aile agent killed by hunters");
+                    capturePartner();
+                    super.die(source);
+                    return;
+                }
+                // Beaten by other mobs or the world: he kneels to no bystander, and retreats with his partner.
                 EdelRaids.debug("Arc Aile agent retreated (not beaten by a player)");
                 withdraw();
                 return;
@@ -273,6 +281,34 @@ public class ArcAileAgentEntity extends PathfinderMob {
         if (e instanceof Player p) return p.getUUID();
         if (e instanceof net.minecraft.world.entity.OwnableEntity o) return o.getOwnerUUID();
         return null;
+    }
+
+    private static boolean isHuntersSide(@Nullable Entity e) {
+        return e instanceof HunterEntity || (e instanceof StingRaidEntity s && s.isHostile());
+    }
+
+    /** The hunters put his partner in the nearest empty cage; with none nearby she grieves and returns to Edel Garden. */
+    private void capturePartner() {
+        EdelRaidData d = partner();
+        setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+        if (d == null || !(level() instanceof ServerLevel s)) return;
+        net.minecraft.core.BlockPos cell = CampCages.findEmptyCage(s, blockPosition(), 24);
+        EdelRaidEntity p = ModEntities.EDEL_RAID.get().create(s);
+        if (p == null) return;
+        p.setIdentity(d.element(), d.form(), d.quality(), d.name());
+        if (cell != null) {
+            p.moveTo(cell.getX() + 0.5, cell.getY(), cell.getZ() + 0.5, getYRot(), 0f);
+            p.makeCaptive();
+            s.addFreshEntity(p);
+            s.sendParticles(ParticleTypes.POOF, cell.getX() + 0.5, cell.getY() + 0.5, cell.getZ() + 0.5, 10, 0.3, 0.5, 0.3, 0.02);
+            for (ServerPlayer near : s.getEntitiesOfClass(ServerPlayer.class, getBoundingBox().inflate(32.0))) {
+                near.displayClientMessage(Component.translatable("message.edelraids.partner_captured", d.name()), false);
+            }
+        } else {
+            p.moveTo(getX() + 0.8, getY(), getZ() + 0.4, getYRot(), 0f);
+            p.setLoyal(80);
+            s.addFreshEntity(p);
+        }
     }
 
     private void yieldTo(DamageSource source) {

@@ -176,6 +176,7 @@
   "message.edelraids.no_songs": "%s knows no songs yet (needs bond %s).",
   "message.edelraids.no_storage": "An Edel Raid cannot be stored in a container.",
   "message.edelraids.not_your_pledger": "%s is bonded to another Pledger.",
+  "message.edelraids.partner_captured": "The hunters have overpowered an Arc Aile agent and locked his partner %s in a cage.",
   "message.edelraids.partner_grieves": "%s will not forgive you. She returns to Edel Garden alone.",
   "message.edelraids.partner_loyal": "%s stays at her partner's side. She chose Arc Aile, and him.",
   "message.edelraids.react_cancelled": "%s could not complete the React.",

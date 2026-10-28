@@ -408,8 +408,9 @@ DATA_VERSION = 3955  # Minecraft 1.21.1
 CAMP_W, CAMP_H, CAMP_D = 17, 6, 17
 CAMP_FLOOR = ['minecraft:grass_block', 'minecraft:coarse_dirt']
 
-# (centre x, centre z) of each cage; a variant uses the first n
-CAGES = [(3, 13), (13, 13), (8, 14)]
+# (centre x, centre z) of each cage; a variant uses the first n+1: one cage per captive plus one left empty, which
+# hunters fill with an Arc Aile agent's partner if they ever beat him
+CAGES = [(3, 13), (13, 13), (8, 14), (2, 9)]
 # id, (x, z) of each guard; a variant uses a prefix of each list
 CAMP_HUNTERS = [('hunter', (7.5, 9.5)), ('hunter', (9.5, 7.5))]
 CAMP_MARKSMEN = [('hunter_marksman', (12.5, 7.5)), ('hunter_marksman', (4.5, 7.5))]
@@ -489,7 +490,7 @@ def camp_entities(cages, marksmen, stings):
 
 
 def camp_template(cages, marksmen, stings):
-    blocks = camp_blocks(cages)
+    blocks = camp_blocks(cages + 1)
     palette, index, entries = [], {}, []
     for (x, y, z), (block, props, nbt) in sorted(blocks.items()):
         key = (block, tuple(sorted(props.items())))
@@ -524,7 +525,7 @@ def write_camp():
     base = os.path.join(DATA, MODID)
     previews = {}
     for name, (cages, marksmen, stings, _) in CAMP_VARIANTS.items():
-        tag, blocks = camp_template(cages, marksmen, stings)
+        tag, blocks = camp_template(cages, marksmen, stings)  # one more cage than captives, left empty
         write_nbt(os.path.join(base, 'structure', 'hunter_camp', name + '.nbt'), tag)
         previews[name] = {'blocks': [[x, y, z, b] for (x, y, z), (b, _, _) in blocks.items() if b != 'minecraft:air'],
                           'entities': [[p[0], p[1], p[2], n['id'].value] for p, n in camp_entities(cages, marksmen, stings)]}
@@ -1231,6 +1232,7 @@ LANG = {
     'message.edelraids.arc_aile_truce_broken': 'Your truce with Arc Aile is broken.',
     'message.edelraids.partner_grieves': '%s will not forgive you. She returns to Edel Garden alone.',
     'message.edelraids.partner_loyal': '%s stays at her partner\'s side. She chose Arc Aile, and him.',
+    'message.edelraids.partner_captured': 'The hunters have overpowered an Arc Aile agent and locked his partner %s in a cage.',
     'message.edelraids.captive_taken': 'Arc Aile has taken %s to Edel Garden.',
     'command.edelraids.standing': 'Your standing with Arc Aile is %s (a truce takes %s).',
     'command.edelraids.standing_truce': 'Your standing with Arc Aile is %s (truce at %s): they will not confront you.',

@@ -268,6 +268,13 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
         loyalTicks = Math.max(1, ticks);
     }
 
+    /** Locked in a camp's cage by hunters (an Arc Aile agent's partner, after the hunters beat him). */
+    public void makeCaptive() {
+        entityData.set(DATA_CAPTIVE, true);
+        lingerTicks = 0;
+        setPersistenceRequired();
+    }
+
     /** Arc Aile reached a camp's captives first: she is taken to Edel Garden. */
     public void takenByArcAile() {
         if (level() instanceof ServerLevel sl) {
