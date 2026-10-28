@@ -63,8 +63,9 @@ import java.util.UUID;
  * own lights, so agents leave ordinary people alone and confront Pledgers, whom they see as exploiting Edel Raids.
  * <p>
  * Beaten, an agent yields instead of dying. He is cleansed of every effect, fire and freezing, nothing but a player's
- * own deliberate hit can harm him, and no companion will keep fighting him. The player then spares him (right-click)
- * or finishes him (strikes again). Sparing raises the player's standing with Arc Aile; killing lowers it sharply, and
+ * own deliberate hit can harm him, and no companion will keep fighting him. The player who beat him (directly or
+ * through a companion) then spares him (right-click), or any player finishes him (strikes again). Beaten by anything
+ * else, he does not yield to a bystander: he and his partner retreat at once, and nobody's standing changes. Sparing raises the player's standing with Arc Aile; killing lowers it sharply, and
  * his partner, who chose this life, grieves and returns to Edel Garden. She never bonds with his killer.
  */
 public class ArcAileAgentEntity extends PathfinderMob {
@@ -74,6 +75,8 @@ public class ArcAileAgentEntity extends PathfinderMob {
     /** Ticks until a yielded agent (and his partner) withdraw; set on yield, shortened by a decision. */
     private int withdrawTicks;
     @Nullable private UUID partnerEntity;
+    /** The player he yielded to: the one who beat him, or whose companion did. Only they may spare him. */
+    @Nullable private UUID victor;
     private boolean staleTargetGoal;
     @Nullable private UUID lastConfronted;
 
@@ -244,6 +247,16 @@ public class ArcAileAgentEntity extends PathfinderMob {
             return;
         }
         if (!isYielded()) {
+            UUID won = victorOf(source.getEntity());
+            // A blow with no attacker (burning from a Fire Edel Raid, a fall): whoever last hit him, if a player's side.
+            if (won == null && source.getEntity() == null) won = victorOf(getLastHurtByMob());
+            if (won == null) {
+                // Beaten by hunters, other mobs or the world: he kneels to no bystander, and retreats with his partner.
+                EdelRaids.debug("Arc Aile agent retreated (not beaten by a player)");
+                withdraw();
+                return;
+            }
+            victor = won;
             yieldTo(source);
             return;
         }
@@ -254,6 +267,14 @@ public class ArcAileAgentEntity extends PathfinderMob {
     }
 
     /** He goes down on one knee. Everything that could still hurt him is cleared, and his partner steps out beside him. */
+    /** The player behind a blow: the attacker, or the owner of the companion (Edel Raid, Sting Raid, pet) who struck. */
+    @Nullable
+    private static UUID victorOf(@Nullable Entity e) {
+        if (e instanceof Player p) return p.getUUID();
+        if (e instanceof net.minecraft.world.entity.OwnableEntity o) return o.getOwnerUUID();
+        return null;
+    }
+
     private void yieldTo(DamageSource source) {
         setHealth(1f);
         removeAllEffects();
@@ -291,7 +312,13 @@ public class ArcAileAgentEntity extends PathfinderMob {
     public InteractionResult mobInteract(Player player, InteractionHand hand) {
         if (hand != InteractionHand.MAIN_HAND || !isYielded() || withdrawTicks <= 40) return super.mobInteract(player, hand);
         if (level().isClientSide) return InteractionResult.SUCCESS;
-        if (player instanceof ServerPlayer sp) spare(sp);
+        if (player instanceof ServerPlayer sp) {
+            if (!sp.getUUID().equals(victor)) {
+                sp.displayClientMessage(Component.translatable("message.edelraids.agent_not_yours"), true);
+                return InteractionResult.CONSUME;
+            }
+            spare(sp);
+        }
         return InteractionResult.SUCCESS;
     }
 
@@ -366,6 +393,7 @@ public class ArcAileAgentEntity extends PathfinderMob {
         super.addAdditionalSaveData(tag);
         tag.putBoolean("Yielded", isYielded());
         tag.putInt("WithdrawTicks", withdrawTicks);
+        if (victor != null) tag.putUUID("Victor", victor);
         if (partnerEntity != null) tag.putUUID("PartnerEntity", partnerEntity);
     }
 
@@ -374,6 +402,7 @@ public class ArcAileAgentEntity extends PathfinderMob {
         super.readAdditionalSaveData(tag);
         entityData.set(DATA_YIELDED, tag.getBoolean("Yielded"));
         withdrawTicks = tag.getInt("WithdrawTicks");
+        victor = tag.hasUUID("Victor") ? tag.getUUID("Victor") : null;
         partnerEntity = tag.hasUUID("PartnerEntity") ? tag.getUUID("PartnerEntity") : null;
     }
 }

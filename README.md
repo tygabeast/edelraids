@@ -58,9 +58,10 @@ Garden.
 
 - Patrols of 1 or 2 agents sometimes appear 32 to 48 blocks from a player in the Overworld (about once every 20
   minutes of play, never two near one player) and wander off when nobody is around.
-- A beaten agent yields instead of dying. He is cleared of every effect, fire and freezing; nothing but your own hit
-  can harm him, and your companions stop fighting him. Right-click him to spare him: he and his partner withdraw, and
-  your standing with Arc Aile rises. Strike him again to finish him: your standing falls sharply, he leaves an
+- An agent beaten by you or one of your companions yields to you instead of dying (beaten by hunters or anything
+  else, he and his partner simply retreat, and nobody's standing changes). He is cleared of every effect, fire and freezing; nothing but your own hit
+  can harm him, and your companions stop fighting him. Right-click him to spare him (only the player he yielded to can):
+  he and his partner withdraw, and your standing with Arc Aile rises. Strike him again to finish him: your standing falls sharply, he leaves an
   Agent's Sigil, and his partner, who chose this life, grieves and returns to Edel Garden. She never bonds with you.
   If you decide nothing, he withdraws after a minute.
 - Freeing a hunter camp's captives also raises your standing a little. At the truce threshold (about five spares)
@@ -188,6 +189,12 @@ gradle build              # jar in build/libs
 ```
 
 GeckoLib is a compile-only dependency resolved from its official Maven; it is never bundled.
+
+## 0.6.1 changes
+
+- Fixed: an agent beaten by hunters (or anything else) yielded to whichever player was nearby, who could then spare
+  or finish him for standing. An agent now yields only to the player who beat him, directly or through a companion,
+  and only that player can spare him; beaten by anything else, he and his partner retreat at once.
 
 ## 0.6.0 changes
 

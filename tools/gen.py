@@ -1224,6 +1224,7 @@ LANG = {
     'message.edelraids.agent_confront_2': 'Arc Aile Agent: "You call that a bond? Let us take her somewhere safe."',
     'message.edelraids.agent_confront_3': 'Arc Aile Agent: "Edel Raids are not weapons. Stand aside."',
     'message.edelraids.agent_yields': 'The agent yields. Right-click to spare him, or strike to finish him.',
+    'message.edelraids.agent_not_yours': 'He yielded to someone else. Sparing him is theirs to give.',
     'message.edelraids.agent_spared': 'You spared the agent. He and his partner withdraw, and Arc Aile will hear of it.',
     'message.edelraids.arc_aile_truce': 'Arc Aile will no longer confront you.',
     'message.edelraids.arc_aile_writ': 'The agent hands you a Writ of Passage before he leaves.',
