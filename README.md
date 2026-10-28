@@ -153,6 +153,13 @@ gradle build              # jar in build/libs
 
 GeckoLib is a compile-only dependency resolved from its official Maven; it is never bundled.
 
+## 0.4.2 changes
+
+- Fixed: a freed Sting Raid could keep fighting another of her owner's companions. Vanilla's targeting goal re-applies
+  the target it remembers every tick, so clearing the target was not enough. Edel Raids and Sting Raids now refuse a
+  target they must not fight (a companion of the same owner, anyone subdued or wounded, or anyone while sitting) and
+  stop the goal that was holding it.
+
 ## 0.4.1 changes
 
 - Fixed: two freed Sting Raids could fight each other, because a Sting Raid kept her grudge from before she was

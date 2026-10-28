@@ -46,6 +46,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.FollowOwnerGoal;
+import net.minecraft.world.entity.ai.goal.GoalSelector;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
 import net.minecraft.world.entity.ai.goal.MoveTowardsRestrictionGoal;
@@ -125,6 +126,8 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
     private int idleTicks;
     private int subduedTicks;
     private int nextAttackTick;
+    /** Set when a target goal tried to hand her a refused target; the goal is stopped on her next tick. */
+    private boolean staleTargetGoal;
     /** A freed Sting Raid told to rest stays near restPos, does not follow, and does not count toward the active limit. */
     private boolean resting;
     @Nullable private BlockPos restPos;
@@ -292,12 +295,12 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
     private void serverTick() {
         if (!rolled) rollIdentity(random);
 
-        // Never keep a target she should not fight: anyone out of the fight, an ally (including companions of her own
-        // owner, which covers a grudge from before she was freed), a player in peaceful, or anything while she sits.
+        // A target that became refused since it was set (she was freed, told to sit, or it was subdued), or a target goal
+        // that keeps offering one, is dropped together with the goal holding it.
         LivingEntity target = getTarget();
-        if (target != null && (isOrderedToSit() || isOutOfFight(target) || isAlliedTo(target)
-                || (isHostile() && target instanceof Player && level().getDifficulty() == Difficulty.PEACEFUL))) {
-            setTarget(null);
+        if (staleTargetGoal || (target != null && refusesTarget(target))) {
+            staleTargetGoal = false;
+            stopTargetGoals(this, targetSelector);
             target = null;
         }
         if (isOrderedToSit() && (isReacted() || isReacting())) revert(false);
@@ -416,8 +419,8 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
         tame(p);
         setOrderedToSit(false);
         subduedTicks = 0;
-        setTarget(null);
         setLastHurtByMob(null);
+        stopTargetGoals(this, targetSelector);
         int limit = Config.STING_LIMIT.get();
         StingRegistry reg = StingRegistry.get(p.getServer());
         boolean active = reg.activeCount(p.getUUID()) < limit;
@@ -552,6 +555,36 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
         if (isOutOfFight(target)) return false;
         if (target instanceof TamableAnimal t && t.isOwnedBy(owner)) return false;
         return super.wantsToAttack(target, owner);
+    }
+
+    /**
+     * Who she must never fight: an ally (including companions of her own owner, which covers a grudge from before she
+     * was freed), anyone out of the fight, a player while hunters are peaceful, or anyone at all while she sits.
+     */
+    private boolean refusesTarget(LivingEntity t) {
+        return isOrderedToSit() || isOutOfFight(t) || isAlliedTo(t)
+                || (isHostile() && t instanceof Player && level().getDifficulty() == Difficulty.PEACEFUL);
+    }
+
+    /**
+     * Vanilla's running target goal re-applies the target it remembers every tick, so clearing the target is not
+     * enough: a refused target is turned away here, and the goal holding it is stopped on her next tick.
+     */
+    @Override
+    public void setTarget(@Nullable LivingEntity target) {
+        if (target != null && !level().isClientSide && refusesTarget(target)) {
+            target = null;
+            staleTargetGoal = true;
+        }
+        super.setTarget(target);
+    }
+
+    /** Stops every running target goal, which also forgets the target it was holding. Never called mid goal-tick. */
+    public static void stopTargetGoals(Mob mob, GoalSelector targets) {
+        mob.setTarget(null);
+        targets.getAvailableGoals().forEach(g -> {
+            if (g.isRunning()) g.stop();
+        });
     }
 
     /** Hunters' Sting Raids never fight each other, and neither do companions of the same owner. */

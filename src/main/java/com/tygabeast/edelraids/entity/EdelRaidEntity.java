@@ -103,6 +103,7 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
     private ItemStack storedWeapon = ItemStack.EMPTY;
     /** Server only: who asked her to React (cleared when React finishes or is cancelled). */
     @Nullable private UUID reactingFor;
+    private boolean staleTargetGoal;
 
     public EdelRaidEntity(EntityType<? extends TamableAnimal> type, Level level) {
         super(type, level);
@@ -298,7 +299,10 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
 
     private void serverTick() {
         if (edelId == null) rollIdentity(random);
-        if (getTarget() != null && (StingRaidEntity.isOutOfFight(getTarget()) || isAlliedTo(getTarget()))) setTarget(null);
+        if (staleTargetGoal || (getTarget() != null && refusesTarget(getTarget()))) {
+            staleTargetGoal = false;
+            StingRaidEntity.stopTargetGoals(this, targetSelector);
+        }
 
         int t = getTransformTicks();
         if (t > 0) {
@@ -394,6 +398,20 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
         setTarget(null);
         sp.displayClientMessage(Component.translatable(sit ? "message.edelraids.stay" : "message.edelraids.follow", edelName), true);
         return InteractionResult.SUCCESS;
+    }
+
+    private boolean refusesTarget(LivingEntity t) {
+        return isOrderedToSit() || StingRaidEntity.isOutOfFight(t) || isAlliedTo(t);
+    }
+
+    /** Refused targets are turned away; see StingRaidEntity#setTarget for why the goal is stopped too. */
+    @Override
+    public void setTarget(@Nullable LivingEntity target) {
+        if (target != null && !level().isClientSide && refusesTarget(target)) {
+            target = null;
+            staleTargetGoal = true;
+        }
+        super.setTarget(target);
     }
 
     /** Companions of the same owner never target each other. */
