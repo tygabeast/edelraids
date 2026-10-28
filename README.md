@@ -49,6 +49,27 @@ hunter's Sting Raids. `/locate structure edelraids:hunter_camp` finds the neares
 - Camps are datapack worldgen (`data/edelraids/worldgen/...`, the biome tag `edelraids:has_structure/hunter_camp`
   and the templates in `data/edelraids/structure/hunter_camp/`), so packs can move, retune or remove them.
 
+## Arc Aile
+
+Arc Aile means to protect Edel Raids, by sealing them away in Edel Garden, far from the world and from time. Its agents
+patrol in pairs of a man and his Edel Raid partner, who fights Reacted in his hand. They leave ordinary people alone,
+but they confront Pledgers. They also fight hunters, and if they reach a camp's captives first, they take them to Edel
+Garden.
+
+- Patrols of 1 or 2 agents sometimes appear 32 to 48 blocks from a player in the Overworld (about once every 20
+  minutes of play, never two near one player) and wander off when nobody is around.
+- A beaten agent yields instead of dying. He is cleared of every effect, fire and freezing; nothing but your own hit
+  can harm him, and your companions stop fighting him. Right-click him to spare him: he and his partner withdraw, and
+  your standing with Arc Aile rises. Strike him again to finish him: your standing falls sharply, he leaves an
+  Agent's Sigil, and his partner, who chose this life, grieves and returns to Edel Garden. She never bonds with you.
+  If you decide nothing, he withdraws after a minute.
+- Freeing a hunter camp's captives also raises your standing a little. At the truce threshold (about five spares)
+  Arc Aile's agents stop confronting you, and the agent you spared hands you a Writ of Passage. Killing an agent
+  breaks the truce.
+- The Writ of Passage and the Agent's Sigil are the two ways into Edel Garden, which comes in 0.7.0.
+- `/edelraids standing` shows your standing; operators can set it with `/edelraids standing set <value>` and summon a
+  patrol with `/edelraids patrol`.
+
 ## Sting Raids
 
 Sting Raids are girls who have been implanted with an artificial stone. They look like Edel Raids, except that the
@@ -167,6 +188,15 @@ gradle build              # jar in build/libs
 ```
 
 GeckoLib is a compile-only dependency resolved from its official Maven; it is never bundled.
+
+## 0.6.0 changes
+
+- Arc Aile: agents with Edel Raid partners, patrols, yielding, sparing or finishing, standing and truce, rival rescues
+  at hunter camps, the Writ of Passage and the Agent's Sigil, and the `standing` and `patrol` commands.
+- Companions, hunters and songs never target anyone out of the fight (a yielded agent, a captive, a loyal partner).
+- An Edel weapon held by a mob carries her element's effect and ring advantage in its hits, and only a player's
+  weapon wears.
+- Cleanup: the stabilizers and Arc Aile passes share one simple tooltip item class.
 
 ## 0.5.0 changes
 

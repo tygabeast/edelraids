@@ -89,6 +89,25 @@ public final class Config {
     public static final ModConfigSpec.DoubleValue STING_DAMAGE_SCALE = B
             .comment("Multiplier on the damage her arm weapon adds while Reacted, and on her launcher's shots.")
             .defineInRange("stingDamageScale", 1.0, 0.0, 10.0);
+    static { B.pop().push("arc_aile"); }
+    public static final ModConfigSpec.IntValue ARC_AILE_SPARE = B
+            .comment("Standing with Arc Aile gained by sparing one of their agents.")
+            .defineInRange("standingPerSpare", 2, 0, 100);
+    public static final ModConfigSpec.IntValue ARC_AILE_KILL = B
+            .comment("Standing with Arc Aile lost by killing one of their agents.")
+            .defineInRange("standingLostPerKill", 6, 0, 1000);
+    public static final ModConfigSpec.IntValue ARC_AILE_CAPTIVE = B
+            .comment("Standing with Arc Aile gained by freeing a captive from a hunter camp.")
+            .defineInRange("standingPerCaptive", 1, 0, 100);
+    public static final ModConfigSpec.IntValue ARC_AILE_TRUCE = B
+            .comment("Standing at which Arc Aile's agents stop confronting a player (truce). Killing an agent usually breaks it.")
+            .defineInRange("truceStanding", 10, 1, 1000);
+    public static final ModConfigSpec.IntValue ARC_AILE_YIELD_TICKS = B
+            .comment("How long a yielded agent waits for you to spare him (right-click) before he withdraws on his own (1200 = 1 minute).")
+            .defineInRange("yieldTicks", 1200, 100, 12000);
+    public static final ModConfigSpec.DoubleValue ARC_AILE_PATROL_CHANCE = B
+            .comment("Chance per player per minute (in the Overworld) that an Arc Aile patrol of 1 or 2 agents appears nearby, if none is already within 96 blocks. 0 disables patrols.")
+            .defineInRange("patrolChancePerMinute", 0.05, 0.0, 1.0);
     static { B.pop().push("balance"); }
     public static final ModConfigSpec.DoubleValue QUALITY_DAMAGE = B
             .comment("Flat attack damage added per quality tier above the first. Placeholder until tiers are designed.")

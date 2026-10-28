@@ -8,11 +8,11 @@ import net.minecraft.world.item.TooltipFlag;
 
 import java.util.List;
 
-/** Stone and Refined Stabilizers. Their use is handled by the Sting Raid herself (StingRaidEntity#mobInteract). */
-public class StabilizerItem extends Item {
+/** A plain item with one line of tooltip: the stabilizers (used on a Sting Raid in StingRaidEntity#mobInteract) and the Arc Aile passes. */
+public class TooltipItem extends Item {
     private final String tooltipKey;
 
-    public StabilizerItem(Properties props, String tooltipKey) {
+    public TooltipItem(Properties props, String tooltipKey) {
         super(props);
         this.tooltipKey = tooltipKey;
     }

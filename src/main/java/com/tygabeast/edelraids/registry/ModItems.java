@@ -3,7 +3,7 @@ package com.tygabeast.edelraids.registry;
 import com.tygabeast.edelraids.EdelRaids;
 import com.tygabeast.edelraids.item.EdelTwinItem;
 import com.tygabeast.edelraids.item.EdelWeaponItem;
-import com.tygabeast.edelraids.item.StabilizerItem;
+import com.tygabeast.edelraids.item.TooltipItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
@@ -39,13 +39,24 @@ public final class ModItems {
     public static final DeferredItem<DeferredSpawnEggItem> HUNTER_MARKSMAN_SPAWN_EGG = REGISTER.register("hunter_marksman_spawn_egg",
             () -> new DeferredSpawnEggItem(ModEntities.HUNTER_MARKSMAN, 0x46503A, 0x9C8A6A, new Item.Properties()));
 
+    public static final DeferredItem<DeferredSpawnEggItem> ARC_AILE_AGENT_SPAWN_EGG = REGISTER.register("arc_aile_agent_spawn_egg",
+            () -> new DeferredSpawnEggItem(ModEntities.ARC_AILE_AGENT, 0xE8ECF2, 0x2E4A7A, new Item.Properties()));
+
+    /** Given once, by the agent you spare when you earn Arc Aile's truce: their leave to enter Edel Garden. */
+    public static final DeferredItem<TooltipItem> WRIT_OF_PASSAGE = REGISTER.register("writ_of_passage",
+            () -> new TooltipItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE), "tooltip.edelraids.writ_of_passage"));
+
+    /** Taken from an agent you killed: a way into Edel Garden by force. */
+    public static final DeferredItem<TooltipItem> AGENT_SIGIL = REGISTER.register("agent_sigil",
+            () -> new TooltipItem(new Item.Properties().stacksTo(16).rarity(Rarity.UNCOMMON), "tooltip.edelraids.agent_sigil"));
+
     /** Revives a subdued Sting Raid (and steadies one you have just freed). */
-    public static final DeferredItem<StabilizerItem> STONE_STABILIZER = REGISTER.register("stone_stabilizer",
-            () -> new StabilizerItem(new Item.Properties().stacksTo(16), "tooltip.edelraids.stone_stabilizer"));
+    public static final DeferredItem<TooltipItem> STONE_STABILIZER = REGISTER.register("stone_stabilizer",
+            () -> new TooltipItem(new Item.Properties().stacksTo(16), "tooltip.edelraids.stone_stabilizer"));
 
     /** Used once on a freed Sting Raid: her stone strains half as fast from then on. */
-    public static final DeferredItem<StabilizerItem> REFINED_STABILIZER = REGISTER.register("refined_stabilizer",
-            () -> new StabilizerItem(new Item.Properties().stacksTo(16).rarity(Rarity.UNCOMMON), "tooltip.edelraids.refined_stabilizer"));
+    public static final DeferredItem<TooltipItem> REFINED_STABILIZER = REGISTER.register("refined_stabilizer",
+            () -> new TooltipItem(new Item.Properties().stacksTo(16).rarity(Rarity.UNCOMMON), "tooltip.edelraids.refined_stabilizer"));
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> TAB = TABS.register("main",
             () -> CreativeModeTab.builder()
@@ -56,8 +67,11 @@ public final class ModItems {
                         out.accept(STING_RAID_SPAWN_EGG.get());
                         out.accept(HUNTER_SPAWN_EGG.get());
                         out.accept(HUNTER_MARKSMAN_SPAWN_EGG.get());
+                        out.accept(ARC_AILE_AGENT_SPAWN_EGG.get());
                         out.accept(STONE_STABILIZER.get());
                         out.accept(REFINED_STABILIZER.get());
+                        out.accept(WRIT_OF_PASSAGE.get());
+                        out.accept(AGENT_SIGIL.get());
                     })
                     .build());
 

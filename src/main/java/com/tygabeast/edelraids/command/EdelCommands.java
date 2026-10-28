@@ -11,6 +11,8 @@ import com.tygabeast.edelraids.data.EdelRaidData;
 import com.tygabeast.edelraids.entity.EdelRaidEntity;
 import com.tygabeast.edelraids.entity.StingRaidEntity;
 import com.tygabeast.edelraids.bond.StingRegistry;
+import com.tygabeast.edelraids.bond.ArcAileStanding;
+import com.tygabeast.edelraids.entity.ArcAilePatrols;
 import com.tygabeast.edelraids.item.EdelWeaponItem;
 import com.tygabeast.edelraids.registry.ModComponents;
 import net.minecraft.commands.CommandSourceStack;
@@ -40,6 +42,8 @@ import org.jetbrains.annotations.Nullable;
  * /edelraids bond <value>      - operators: set her bond, for testing awakening
  * /edelraids create <element> [form] [quality] - operators: create a specific Edel Raid (any ring, for testing)
  * /edelraids sting <element> [form] [hostile|freed] - operators: create a Sting Raid (for testing)
+ * /edelraids standing [set <value>] - your standing with Arc Aile (setting it: operators)
+ * /edelraids patrol           - operators: an Arc Aile patrol appears near you (for testing)
  * release and info also work on a freed Sting Raid you look at; releasing one lets her leave.
  */
 public final class EdelCommands {
@@ -66,6 +70,12 @@ public final class EdelCommands {
                                         .executes(ctx -> createSting(ctx, ResourceLocationArgument.getId(ctx, "form"), true))
                                         .then(Commands.literal("hostile").executes(ctx -> createSting(ctx, ResourceLocationArgument.getId(ctx, "form"), true)))
                                         .then(Commands.literal("freed").executes(ctx -> createSting(ctx, ResourceLocationArgument.getId(ctx, "form"), false))))))
+                .then(Commands.literal("standing")
+                        .executes(EdelCommands::standing)
+                        .then(Commands.literal("set").requires(s -> s.hasPermission(2))
+                                .then(Commands.argument("value", IntegerArgumentType.integer(-1000, 1000))
+                                        .executes(ctx -> setStanding(ctx, IntegerArgumentType.getInteger(ctx, "value"))))))
+                .then(Commands.literal("patrol").requires(s -> s.hasPermission(2)).executes(EdelCommands::patrol))
                 .then(Commands.literal("bond").requires(s -> s.hasPermission(2))
                         .then(Commands.argument("value", IntegerArgumentType.integer(0))
                                 .executes(ctx -> setBond(ctx, IntegerArgumentType.getInteger(ctx, "value"))))));
@@ -259,6 +269,32 @@ public final class EdelCommands {
         ctx.getSource().sendSuccess(() -> Component.translatable(hostile ? "command.edelraids.sting_created_hostile" : "command.edelraids.sting_created",
                 e.getStingName(), EdelWeaponItem.elementName(elementId), Component.translatable("edelraids.sting_arm." + e.getArm().id())), true);
         return 1;
+    }
+
+    private static int standing(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer p = ctx.getSource().getPlayerOrException();
+        ArcAileStanding st = ArcAileStanding.get(p.getServer());
+        int v = st.standing(p.getUUID());
+        ctx.getSource().sendSuccess(() -> Component.translatable(st.truce(p.getUUID()) ? "command.edelraids.standing_truce" : "command.edelraids.standing",
+                v, Config.ARC_AILE_TRUCE.get()), false);
+        return v;
+    }
+
+    private static int setStanding(CommandContext<CommandSourceStack> ctx, int value) throws CommandSyntaxException {
+        ServerPlayer p = ctx.getSource().getPlayerOrException();
+        ArcAileStanding.get(p.getServer()).set(p.getUUID(), value);
+        return standing(ctx);
+    }
+
+    private static int patrol(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer p = ctx.getSource().getPlayerOrException();
+        int n = ArcAilePatrols.spawnPatrolNear(p.serverLevel(), p, p.getRandom());
+        if (n == 0) {
+            ctx.getSource().sendFailure(Component.translatable("command.edelraids.patrol_failed"));
+            return 0;
+        }
+        ctx.getSource().sendSuccess(() -> Component.translatable("command.edelraids.patrol_spawned", n), true);
+        return n;
     }
 
     @Nullable

@@ -133,7 +133,8 @@ public class EdelWeaponItem extends Item implements GeoItem {
 
     @Override
     public void postHurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
-        if (attacker.level().isClientSide) return;
+        // Only a Pledger's weapon wears: an Arc Aile agent's partner is never worn down (or broken) by his own swings.
+        if (attacker.level().isClientSide || !(attacker instanceof Player)) return;
         int wear = Config.WEAR_PER_HIT.get();
         if (wear > 0) stack.hurtAndBreak(wear, attacker, EquipmentSlot.MAINHAND);
     }

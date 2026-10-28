@@ -50,6 +50,7 @@ public class HunterEntity extends Monster implements CrossbowAttackMob {
     private static final int CAMP_RADIUS = 14;
 
     @Nullable private BlockPos camp;
+    private boolean staleTargetGoal;
 
     public HunterEntity(EntityType<? extends Monster> type, Level level) {
         super(type, level);
@@ -103,6 +104,27 @@ public class HunterEntity extends Monster implements CrossbowAttackMob {
     @Override
     protected void populateDefaultEquipmentSlots(RandomSource random, DifficultyInstance difficulty) {
         setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(isMarksman() ? Items.CROSSBOW : Items.IRON_SWORD));
+    }
+
+    /** Nobody out of the fight (a yielded agent, a captive) and no ally is a target; see StingRaidEntity#setTarget. */
+    @Override
+    public void setTarget(@Nullable LivingEntity target) {
+        if (target != null && !level().isClientSide && (StingRaidEntity.isOutOfFight(target) || isAlliedTo(target))) {
+            target = null;
+            staleTargetGoal = true;
+        }
+        super.setTarget(target);
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (level().isClientSide) return;
+        LivingEntity t = getTarget();
+        if (staleTargetGoal || (t != null && (StingRaidEntity.isOutOfFight(t) || isAlliedTo(t)))) {
+            staleTargetGoal = false;
+            StingRaidEntity.stopTargetGoals(this, targetSelector);
+        }
     }
 
     /** Hunters and their Sting Raids are on the same side. */

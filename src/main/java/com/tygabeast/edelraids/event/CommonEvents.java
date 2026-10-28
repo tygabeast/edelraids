@@ -71,7 +71,10 @@ public final class CommonEvents {
         bus.addListener((PlayerTickEvent.Post e) -> {
             if (e.getEntity() instanceof ServerPlayer p) SongManager.tickPlayer(p);
         });
-        bus.addListener((ServerTickEvent.Post e) -> SongManager.tickFields(e.getServer().getTickCount()));
+        bus.addListener((ServerTickEvent.Post e) -> {
+            SongManager.tickFields(e.getServer().getTickCount());
+            com.tygabeast.edelraids.entity.ArcAilePatrols.tick(e.getServer().overworld(), e.getServer().getTickCount());
+        });
         bus.addListener((PlayerEvent.PlayerLoggedOutEvent e) -> SongManager.forget(e.getEntity().getUUID()));
         bus.addListener((ServerStoppedEvent e) -> SongManager.clearFields());
         bus.addListener(EventPriority.HIGHEST, CommonEvents::onDeath);
@@ -92,6 +95,10 @@ public final class CommonEvents {
         if (direct instanceof AbstractArrow arrow) return EdelWeaponItem.data(arrow.getWeaponItem());
         if (direct instanceof Player p && src.getEntity() == p && src.is(DamageTypes.PLAYER_ATTACK)) {
             return EdelWeaponItem.data(p.getMainHandItem());
+        }
+        // An Arc Aile agent fighting with his partner Reacted in his hand.
+        if (direct instanceof net.minecraft.world.entity.Mob m && src.getEntity() == m && src.is(DamageTypes.MOB_ATTACK)) {
+            return EdelWeaponItem.data(m.getMainHandItem());
         }
         return null;
     }

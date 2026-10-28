@@ -4,6 +4,7 @@ import com.tygabeast.edelraids.EdelRaids;
 import com.tygabeast.edelraids.entity.EdelRaidEntity;
 import com.tygabeast.edelraids.entity.StingRaidEntity;
 import com.tygabeast.edelraids.entity.HunterEntity;
+import com.tygabeast.edelraids.entity.ArcAileAgentEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
@@ -40,6 +41,14 @@ public final class ModEntities {
                     .eyeHeight(1.62f)
                     .clientTrackingRange(8)
                     .build(EdelRaids.id("hunter_marksman").toString()));
+
+    /** MISC: agents only come from patrols, so they must not count against (or crowd out) natural mob spawning. */
+    public static final DeferredHolder<EntityType<?>, EntityType<ArcAileAgentEntity>> ARC_AILE_AGENT = REGISTER.register("arc_aile_agent",
+            () -> EntityType.Builder.of(ArcAileAgentEntity::new, MobCategory.MISC)
+                    .sized(0.6f, 1.95f)
+                    .eyeHeight(1.62f)
+                    .clientTrackingRange(10)
+                    .build(EdelRaids.id("arc_aile_agent").toString()));
 
     private ModEntities() {}
 }

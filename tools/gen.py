@@ -623,6 +623,69 @@ def hunter_texture(cloak, marksman):
     return px
 
 
+# ------------------------------------------------------------------ Arc Aile (agent texture and pass items)
+
+COAT = (232, 236, 242, 255)
+COAT_TRIM = (46, 74, 122, 255)
+INSIGNIA = (214, 182, 92, 255)
+AGENT_HAIR = (40, 36, 44, 255)
+
+
+def agent_texture():
+    """An Arc Aile agent: a long white coat with deep blue trim and a gold insignia, dark trousers and boots."""
+    px = canvas(64, 64)
+    box_uv(px, 0, 0, 8, 8, 8, {'top': AGENT_HAIR, 'bottom': HUNTER_SKIN, 'right': AGENT_HAIR, 'front': HUNTER_SKIN,
+                                'left': AGENT_HAIR, 'back': AGENT_HAIR})
+    rect(px, 8, 8, 8, 2, AGENT_HAIR)
+    rect(px, 10, 11, 1, 1, (36, 52, 86, 255))
+    rect(px, 13, 11, 1, 1, (36, 52, 86, 255))
+    rect(px, 11, 14, 2, 1, shade(HUNTER_SKIN, 0.85))
+    # the hat layer stays empty (no hood)
+    box_uv(px, 16, 16, 8, 12, 4, all_faces(COAT))
+    rect(px, 23, 20, 2, 12, COAT_TRIM)          # coat opening
+    rect(px, 20, 20, 8, 1, COAT_TRIM)           # collar
+    rect(px, 21, 23, 1, 2, INSIGNIA)            # insignia over the heart
+    rect(px, 20, 31, 8, 1, COAT_TRIM)           # hem
+    box_uv(px, 40, 16, 4, 12, 4, all_faces(COAT))
+    rect(px, 40, 29, 16, 2, COAT_TRIM)          # cuffs
+    rect(px, 40, 31, 16, 1, HUNTER_SKIN)        # hands
+    box_uv(px, 0, 16, 4, 12, 4, all_faces((44, 52, 74, 255)))
+    rect(px, 0, 28, 16, 4, (30, 28, 32, 255))   # boots
+    return px
+
+
+def writ_texture():
+    """16x16: a rolled writ tied with Arc Aile blue, sealed in gold."""
+    px = canvas(16, 16)
+    paper, edge = (236, 226, 196, 255), (196, 182, 146, 255)
+    for i in range(10):
+        x, y = 3 + i, 11 - i
+        rect(px, x, y - 1, 2, 3, paper)
+        px[y + 1][x] = edge
+    rect(px, 2, 11, 3, 3, edge)
+    rect(px, 12, 1, 3, 3, edge)
+    for i in range(3):
+        px[8 - i][6 + i] = COAT_TRIM
+        px[9 - i][6 + i] = COAT_TRIM
+    rect(px, 9, 8, 3, 3, INSIGNIA)
+    px[9][10] = shade(INSIGNIA, 0.7)
+    return px
+
+
+def sigil_texture():
+    """16x16: an agent's sigil, a gold-rimmed blue disc with a white wing."""
+    px = canvas(16, 16)
+    for y in range(16):
+        for x in range(16):
+            d = math.hypot(x - 7.5, y - 7.5)
+            if d <= 6.5:
+                px[y][x] = INSIGNIA if d > 5.2 else COAT_TRIM
+    for i in range(5):
+        rect(px, 5 + i, 9 - i, 1, 1 + i // 2, COAT)
+    px[4][11] = (255, 255, 255, 255)
+    return px
+
+
 # ------------------------------------------------------------------ Longsword weapon form (placeholder)
 
 STEEL = (214, 226, 232, 255)
@@ -1151,6 +1214,27 @@ LANG = {
     'message.edelraids.recovered_lost': '%s was lost from your inventory and has reformed beside you.',
     'entity.edelraids.sting_raid': 'Sting Raid',
     'entity.edelraids.hunter': 'Hunter',
+    'entity.edelraids.arc_aile_agent': 'Arc Aile Agent',
+    'item.edelraids.arc_aile_agent_spawn_egg': 'Arc Aile Agent Spawn Egg',
+    'item.edelraids.writ_of_passage': 'Writ of Passage',
+    'item.edelraids.agent_sigil': "Agent's Sigil",
+    'tooltip.edelraids.writ_of_passage': "Arc Aile's leave to enter Edel Garden, granted in good faith.",
+    'tooltip.edelraids.agent_sigil': 'Taken from a fallen Arc Aile agent. It can force the way into Edel Garden.',
+    'message.edelraids.agent_confront_1': 'Arc Aile Agent: "Release her. She deserves a life without fighting."',
+    'message.edelraids.agent_confront_2': 'Arc Aile Agent: "You call that a bond? Let us take her somewhere safe."',
+    'message.edelraids.agent_confront_3': 'Arc Aile Agent: "Edel Raids are not weapons. Stand aside."',
+    'message.edelraids.agent_yields': 'The agent yields. Right-click to spare him, or strike to finish him.',
+    'message.edelraids.agent_spared': 'You spared the agent. He and his partner withdraw, and Arc Aile will hear of it.',
+    'message.edelraids.arc_aile_truce': 'Arc Aile will no longer confront you.',
+    'message.edelraids.arc_aile_writ': 'The agent hands you a Writ of Passage before he leaves.',
+    'message.edelraids.arc_aile_truce_broken': 'Your truce with Arc Aile is broken.',
+    'message.edelraids.partner_grieves': '%s will not forgive you. She returns to Edel Garden alone.',
+    'message.edelraids.partner_loyal': '%s stays at her partner\'s side. She chose Arc Aile, and him.',
+    'message.edelraids.captive_taken': 'Arc Aile has taken %s to Edel Garden.',
+    'command.edelraids.standing': 'Your standing with Arc Aile is %s (a truce takes %s).',
+    'command.edelraids.standing_truce': 'Your standing with Arc Aile is %s (truce at %s): they will not confront you.',
+    'command.edelraids.patrol_spawned': 'An Arc Aile patrol of %s appeared nearby.',
+    'command.edelraids.patrol_failed': 'No room for a patrol nearby; try somewhere more open.',
     'entity.edelraids.hunter_marksman': 'Hunter Marksman',
     'item.edelraids.hunter_spawn_egg': 'Hunter Spawn Egg',
     'item.edelraids.hunter_marksman_spawn_egg': 'Hunter Marksman Spawn Egg',
@@ -1213,6 +1297,9 @@ CONFIG_LANG = {
     'stabilizedStrainFactor': 'Refined Strain Multiplier', 'strainRecoveryPerSecond': 'Strain Recovery per Second',
     'staggerTicks': 'Stagger Time (ticks)', 'revertDelayTicks': 'Revert Delay (ticks)',
     'subduedEscapeTicks': 'Escape Time (ticks)', 'stingDamageScale': 'Sting Raid Damage Scale',
+    'arc_aile': 'Arc Aile', 'standingPerSpare': 'Standing per Spare', 'standingLostPerKill': 'Standing Lost per Kill',
+    'standingPerCaptive': 'Standing per Freed Captive', 'truceStanding': 'Truce Standing', 'yieldTicks': 'Yield Time (ticks)',
+    'patrolChancePerMinute': 'Patrol Chance per Minute',
     'technical': 'Technical', 'validateIntervalTicks': 'Validation Interval (ticks)', 'debug': 'Debug Logging',
 }
 for _k, _v in CONFIG_LANG.items():
@@ -1276,6 +1363,11 @@ def main():
     write_loot()
     write_png(os.path.join(ASSETS, 'textures', 'entity', 'hunter.png'), 64, 64, hunter_texture((92, 70, 54, 255), False))
     write_png(os.path.join(ASSETS, 'textures', 'entity', 'hunter_marksman.png'), 64, 64, hunter_texture((72, 82, 60, 255), True))
+    write_png(os.path.join(ASSETS, 'textures', 'entity', 'arc_aile_agent.png'), 64, 64, agent_texture())
+    for name, fn in (('writ_of_passage', writ_texture), ('agent_sigil', sigil_texture)):
+        write_png(os.path.join(ASSETS, 'textures', 'item', name + '.png'), 16, 16, fn())
+        write_json(os.path.join(ASSETS, 'models', 'item', name + '.json'),
+                   {'parent': 'minecraft:item/generated', 'textures': {'layer0': MODID + ':item/' + name}})
     preview_dir = os.environ.get('EDELRAIDS_PREVIEW_DIR')
     if preview_dir:  # layout data for an optional preview render; never written into the project
         write_json(os.path.join(preview_dir, 'camps.json'), camp_previews)
@@ -1300,7 +1392,7 @@ def main():
                            'edelraids', 'client', 'FormIndex.java'), 'w', newline='\n') as fj:
         fj.write(FORM_INDEX_JAVA.replace('@FORMS@', ',\n'.join('            "' + f[0] + '"' for f in FORMS)))
     write_json(os.path.join(ASSETS, 'models', 'item', 'edel_raid_spawn_egg.json'), {'parent': 'minecraft:item/template_spawn_egg'})
-    for egg in ('sting_raid', 'hunter', 'hunter_marksman'):
+    for egg in ('sting_raid', 'hunter', 'hunter_marksman', 'arc_aile_agent'):
         write_json(os.path.join(ASSETS, 'models', 'item', egg + '_spawn_egg.json'), {'parent': 'minecraft:item/template_spawn_egg'})
     write_json(os.path.join(ASSETS, 'lang', 'en_us.json'), dict(sorted(LANG.items())))
 

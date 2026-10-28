@@ -174,6 +174,8 @@ public final class SongManager {
     /** Song targets: living, attackable, not you, not your allies or anything you own, and other players only where PvP allows. */
     private static boolean isTarget(ServerPlayer p, LivingEntity t) {
         if (t == p || !t.isAlive() || !t.isAttackable() || t.isSpectator() || t.isAlliedTo(p)) return false;
+        // Nobody out of the fight is hit: a yielded agent can only be finished deliberately, never by a song's area.
+        if (com.tygabeast.edelraids.entity.StingRaidEntity.isOutOfFight(t)) return false;
         if (t instanceof OwnableEntity o && o.getOwnerUUID() != null) {
             // Your own companions are never hit; someone else's only where you could hurt that player.
             if (p.getUUID().equals(o.getOwnerUUID())) return false;

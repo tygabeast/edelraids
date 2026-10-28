@@ -49,5 +49,6 @@ public final class ClientSetup {
         event.registerEntityRenderer(ModEntities.STING_RAID.get(), StingRaidRenderer::new);
         event.registerEntityRenderer(ModEntities.HUNTER.get(), ctx -> new HunterRenderer(ctx, "hunter"));
         event.registerEntityRenderer(ModEntities.HUNTER_MARKSMAN.get(), ctx -> new HunterRenderer(ctx, "hunter_marksman"));
+        event.registerEntityRenderer(ModEntities.ARC_AILE_AGENT.get(), AgentRenderer::new);
     }
 }
