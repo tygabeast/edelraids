@@ -1,4 +1,6 @@
 {
+  "block.edelraids.garden_gate": "Garden Gate",
+  "block.edelraids.return_gate": "Return Gate",
   "command.edelraids.bond_set": "Bond set to %s.",
   "command.edelraids.created": "Created %s: %s %s, %s.",
   "command.edelraids.info": "%s: %s %s, %s, bond %s/%s, %s",
@@ -169,6 +171,11 @@
   "message.edelraids.captive_guarded": "%s is still guarded. Deal with the hunters and their Sting Raids nearby first.",
   "message.edelraids.captive_taken": "Arc Aile has taken %s to Edel Garden.",
   "message.edelraids.follow": "%s will follow you.",
+  "message.edelraids.garden_entered": "The gate opens, and you step into Edel Garden. Time does not pass here.",
+  "message.edelraids.garden_forced": "The sigil shatters as the gate is forced open. You step into Edel Garden, uninvited.",
+  "message.edelraids.garden_left": "You step back through the gate, into the world where time still passes.",
+  "message.edelraids.garden_missing": "Edel Garden could not be reached (has a datapack removed it?).",
+  "message.edelraids.gate_sealed": "The Garden Gate is sealed. A Writ of Passage opens it, or an agent's sigil forces it.",
   "message.edelraids.inventory_full": "You need a free slot before %s can React.",
   "message.edelraids.is_wounded": "%s is wounded and needs time to recover.",
   "message.edelraids.learned_song": "%s learned %s!",
@@ -270,7 +277,7 @@
   "song.edelraids.wisdom_1": "Metis Fugue",
   "song.edelraids.wisdom_2": "Mnemosyne Prelude",
   "song.edelraids.wisdom_3": "Athena Anthem",
-  "tooltip.edelraids.agent_sigil": "Taken from a fallen Arc Aile agent. It can force the way into Edel Garden.",
+  "tooltip.edelraids.agent_sigil": "Taken from a fallen Arc Aile agent. Use it on a fortress's Garden Gate to force the way into Edel Garden; it breaks.",
   "tooltip.edelraids.bond": "Bond: %s",
   "tooltip.edelraids.bond_awakened": "Bond: %s (Awakened)",
   "tooltip.edelraids.element": "Element: %s",
@@ -278,5 +285,5 @@
   "tooltip.edelraids.refined_stabilizer": "Use on a freed Sting Raid: her stone strains half as fast from now on.",
   "tooltip.edelraids.revert": "Sneak + use to let her reform",
   "tooltip.edelraids.stone_stabilizer": "Use on a subdued Sting Raid to steady her failing stone.",
-  "tooltip.edelraids.writ_of_passage": "Arc Aile's leave to enter Edel Garden, granted in good faith."
+  "tooltip.edelraids.writ_of_passage": "Arc Aile's leave to enter Edel Garden. Use it on the Garden Gate in one of their fortresses; it is never spent."
 }

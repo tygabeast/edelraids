@@ -687,6 +687,248 @@ def sigil_texture():
     return px
 
 
+# ------------------------------------------------------------------ Arc Aile fortress (overworld) and Edel Garden
+
+def put_block(blocks, x, y, z, block, props=None, nbt=None):
+    blocks[(x, y, z)] = (block, props or {}, nbt)
+
+
+def template_from(blocks, entities, size):
+    """A structure template (NBT) from {(x,y,z): (block, props, nbt)} and [((x,y,z), nbt)]."""
+    palette, index, entries = [], {}, []
+    for (x, y, z), (block, props, nbt) in sorted(blocks.items()):
+        key = (block, tuple(sorted(props.items())))
+        if key not in index:
+            index[key] = len(palette)
+            state = {'Name': S(block)}
+            if props:
+                state['Properties'] = C({k: S(v) for k, v in sorted(props.items())})
+            palette.append(C(state))
+        e = {'pos': LIST('i', [I(x), I(y), I(z)]), 'state': I(index[key])}
+        if nbt is not None:
+            e['nbt'] = nbt
+        entries.append(C(e))
+    ents = [C({'pos': LIST('d', [D(x), D(y), D(z)]),
+               'blockPos': LIST('i', [I(int(math.floor(x))), I(int(y)), I(int(math.floor(z)))]),
+               'nbt': C(nbt)}) for (x, y, z), nbt in entities]
+    return C({'DataVersion': I(DATA_VERSION), 'size': LIST('i', [I(v) for v in size]),
+              'palette': LIST('compound', palette), 'blocks': LIST('compound', entries),
+              'entities': LIST('compound', ents)})
+
+
+FORT = 35          # footprint (x and z)
+FORT_H = 16        # height
+WALL_H = 8
+TOWER_H = 12
+
+
+def fortress_blocks():
+    """Arc Aile's fortress: a walled square with corner towers, a gatehouse opening south, barracks along two walls,
+    and the Garden Gate on a pale shrine at the centre. Everything inside is cleared to air."""
+    b = {}
+    n = FORT - 1
+    for x in range(FORT):
+        for z in range(FORT):
+            path = abs(x - 17) <= 1 or abs(z - 17) <= 1
+            put_block(b, x, 0, z, 'minecraft:stone_bricks' if path else 'minecraft:grass_block', {} if path else {'snowy': 'false'})
+            for y in range(1, FORT_H):
+                put_block(b, x, y, z, 'minecraft:air')
+
+    def wall_block(x, y, z):
+        h = (x * 31 + y * 17 + z * 13) % 9
+        return 'minecraft:mossy_stone_bricks' if h == 0 else 'minecraft:cracked_stone_bricks' if h == 1 else 'minecraft:stone_bricks'
+
+    # curtain wall, one block thick, with crenellations
+    for i in range(FORT):
+        for (x, z) in ((i, 0), (i, n), (0, i), (n, i)):
+            for y in range(1, WALL_H + 1):
+                put_block(b, x, y, z, wall_block(x, y, z))
+            if i % 2 == 0:
+                put_block(b, x, WALL_H + 1, z, 'minecraft:stone_bricks')
+    # corner towers 5x5, solid with crenellations
+    for cx, cz in ((2, 2), (n - 2, 2), (2, n - 2), (n - 2, n - 2)):
+        for x in range(cx - 2, cx + 3):
+            for z in range(cz - 2, cz + 3):
+                for y in range(1, TOWER_H + 1):
+                    put_block(b, x, y, z, wall_block(x, y, z))
+                if (x + z) % 2 == 0 and (x in (cx - 2, cx + 2) or z in (cz - 2, cz + 2)):
+                    put_block(b, x, TOWER_H + 1, z, 'minecraft:stone_bricks')
+        put_block(b, cx, TOWER_H + 1, cz, 'minecraft:lantern', {'hanging': 'false', 'waterlogged': 'false'})
+    # gatehouse: a raised block over a 5-wide, 4-tall opening in the south wall
+    for x in range(14, 21):
+        for y in range(1, WALL_H + 4):
+            for z in (n - 1, n):
+                put_block(b, x, y, z, wall_block(x, y, z))
+    for x in range(15, 20):
+        for y in range(1, 5):
+            for z in (n - 1, n):
+                put_block(b, x, y, z, 'minecraft:air')
+    for x in (14, 20):
+        put_block(b, x, 5, n + 0, 'minecraft:lantern', {'hanging': 'true', 'waterlogged': 'false'})
+    # barracks against the west and east walls
+    for x0 in (2, n - 7):
+        for x in range(x0, x0 + 6):
+            for z in range(9, 26):
+                edge = x in (x0, x0 + 5) or z in (9, 25)
+                for y in range(1, 5):
+                    put_block(b, x, y, z, 'minecraft:spruce_planks' if edge else 'minecraft:air')
+                put_block(b, x, 5, z, 'minecraft:spruce_slab', {'type': 'bottom', 'waterlogged': 'false'})
+        door_x = x0 + 5 if x0 == 2 else x0
+        for y in (1, 2):
+            put_block(b, door_x, y, 17, 'minecraft:air')
+        put_block(b, x0 + 2, 1, 11, 'minecraft:barrel', {'facing': 'up', 'open': 'false'})
+        put_block(b, x0 + 3, 1, 23, 'minecraft:crafting_table')
+    # the shrine: a pale raised platform, four pillars, and the Garden Gate on a pedestal
+    for x in range(13, 22):
+        for z in range(13, 22):
+            put_block(b, x, 1, z, 'minecraft:smooth_quartz')
+    for x, z in ((13, 13), (21, 13), (13, 21), (21, 21)):
+        for y in range(2, 6):
+            put_block(b, x, y, z, 'minecraft:quartz_pillar', {'axis': 'y'})
+        put_block(b, x, 6, z, 'minecraft:lantern', {'hanging': 'false', 'waterlogged': 'false'})
+    put_block(b, 17, 2, 17, MODID + ':garden_gate')
+    for x, z in ((16, 17), (18, 17), (17, 16)):
+        put_block(b, x, 2, z, 'minecraft:quartz_slab', {'type': 'bottom', 'waterlogged': 'false'})
+    # banners of Arc Aile blue and white over the gate
+    for x in (15, 19):
+        put_block(b, x, 6, n + 0, 'minecraft:blue_wall_banner', {'facing': 'south'})
+    return b
+
+
+FORT_DEFENDERS = [(16.5, 30.5), (18.5, 30.5), (12.5, 17.5), (22.5, 17.5), (17.5, 9.5), (6.5, 6.5), (28.5, 28.5)]
+
+
+def fortress_entities():
+    return [((x, 1.0, z), {'id': S(MODID + ':arc_aile_agent'), 'Posted': B(1), 'PersistenceRequired': B(1)}) for x, z in FORT_DEFENDERS]
+
+
+def arrival_court_blocks():
+    """Edel Garden's arrival court: a 9x9 pale plaza laid on the ground, the Return Gate at its centre."""
+    b = {}
+    for x in range(9):
+        for z in range(9):
+            put_block(b, x, 0, z, 'minecraft:calcite' if (x + z) % 2 else 'minecraft:smooth_quartz')
+            for y in range(1, 5):
+                put_block(b, x, y, z, 'minecraft:air')
+    for x, z in ((0, 0), (8, 0), (0, 8), (8, 8)):
+        put_block(b, x, 1, z, 'minecraft:quartz_pillar', {'axis': 'y'})
+        put_block(b, x, 2, z, 'minecraft:lantern', {'hanging': 'false', 'waterlogged': 'false'})
+    put_block(b, 4, 1, 4, MODID + ':return_gate')
+    return b
+
+
+FORTRESS_BIOMES = ['minecraft:plains', 'minecraft:sunflower_plains', 'minecraft:meadow', 'minecraft:forest',
+                   'minecraft:birch_forest', 'minecraft:taiga', 'minecraft:snowy_plains', 'minecraft:savanna']
+
+
+def write_fortress():
+    base = os.path.join(DATA, MODID)
+    write_nbt(os.path.join(base, 'structure', 'arc_aile_fortress', 'fortress.nbt'),
+              template_from(fortress_blocks(), fortress_entities(), (FORT, FORT_H, FORT)))
+    write_nbt(os.path.join(base, 'structure', 'garden', 'arrival_court.nbt'),
+              template_from(arrival_court_blocks(), [], (9, 5, 9)))
+    write_json(os.path.join(base, 'worldgen', 'template_pool', 'arc_aile_fortress', 'start.json'), {
+        'fallback': 'minecraft:empty',
+        'elements': [{'weight': 1, 'element': {'element_type': 'minecraft:single_pool_element',
+                                                'location': MODID + ':arc_aile_fortress/fortress',
+                                                'projection': 'rigid', 'processors': 'minecraft:empty'}}]})
+    write_json(os.path.join(base, 'worldgen', 'structure', 'arc_aile_fortress.json'), {
+        'type': 'minecraft:jigsaw', 'biomes': '#' + MODID + ':has_structure/arc_aile_fortress',
+        'step': 'surface_structures', 'spawn_overrides': {}, 'terrain_adaptation': 'beard_thin',
+        'start_pool': MODID + ':arc_aile_fortress/start', 'size': 1, 'start_height': {'absolute': 0},
+        'project_start_to_heightmap': 'WORLD_SURFACE_WG', 'max_distance_from_center': 80, 'use_expansion_hack': False})
+    # Rare: about as rare as woodland mansions, and never near villages.
+    write_json(os.path.join(base, 'worldgen', 'structure_set', 'arc_aile_fortress.json'), {
+        'structures': [{'structure': MODID + ':arc_aile_fortress', 'weight': 1}],
+        'placement': {'type': 'minecraft:random_spread', 'spacing': 64, 'separation': 20, 'salt': 902114389,
+                      'exclusion_zone': {'other_set': 'minecraft:villages', 'chunk_count': 8}}})
+    write_json(os.path.join(base, 'tags', 'worldgen', 'biome', 'has_structure', 'arc_aile_fortress.json'),
+               {'replace': False, 'values': FORTRESS_BIOMES})
+
+
+GARDEN_BIOMES = {
+    # id: (vanilla features for flowers and trees, grass colour or None, temperature range)
+    'garden_meadow': (['minecraft:patch_tall_grass_2', 'minecraft:patch_grass_plain', 'minecraft:flower_meadow', 'minecraft:trees_meadow'], None, [-1.0, 0.0]),
+    'garden_grove': (['minecraft:patch_tall_grass_2', 'minecraft:patch_grass_plain', 'minecraft:flower_cherry', 'minecraft:trees_cherry'], 11983713, [0.0, 1.0]),
+}
+
+
+def write_garden(vanilla_noise_path):
+    base = os.path.join(DATA, MODID)
+    # Time does not pass in Edel Garden: always day, no rain, no raids, no monsters.
+    write_json(os.path.join(base, 'dimension_type', 'edel_garden.json'), {
+        'ultrawarm': False, 'natural': True, 'piglin_safe': False, 'respawn_anchor_works': False, 'bed_works': True,
+        'has_raids': False, 'has_skylight': True, 'has_ceiling': False, 'coordinate_scale': 1.0, 'ambient_light': 0.0,
+        'fixed_time': 6000, 'logical_height': 384, 'effects': 'minecraft:overworld',
+        'infiniburn': '#minecraft:infiniburn_overworld', 'min_y': -64, 'height': 384,
+        'monster_spawn_light_level': 0, 'monster_spawn_block_light_limit': 0})
+    write_json(os.path.join(base, 'dimension', 'edel_garden.json'), {
+        'type': MODID + ':edel_garden',
+        'generator': {'type': 'minecraft:noise', 'settings': MODID + ':edel_garden', 'biome_source': {
+            'type': 'minecraft:multi_noise', 'biomes': [
+                {'biome': MODID + ':' + bid, 'parameters': {
+                    'temperature': temp, 'humidity': [-1.0, 1.0], 'continentalness': [-1.2, 1.2], 'erosion': [-1.0, 1.0],
+                    'weirdness': [-1.0, 1.0], 'depth': 0.0, 'offset': 0.0}}
+                for bid, (_, _, temp) in GARDEN_BIOMES.items()]}}})
+    # Ponds and small lakes everywhere, so no sanctuary is without water.
+    write_json(os.path.join(base, 'worldgen', 'configured_feature', 'garden_pond.json'), {
+        'type': 'minecraft:lake', 'config': {
+            'fluid': {'type': 'minecraft:simple_state_provider', 'state': {'Name': 'minecraft:water', 'Properties': {'level': '0'}}},
+            'barrier': {'type': 'minecraft:simple_state_provider', 'state': {'Name': 'minecraft:grass_block', 'Properties': {'snowy': 'false'}}}}})
+    write_json(os.path.join(base, 'worldgen', 'placed_feature', 'garden_pond.json'), {
+        'feature': MODID + ':garden_pond', 'placement': [
+            {'type': 'minecraft:rarity_filter', 'chance': 3}, {'type': 'minecraft:in_square'},
+            {'type': 'minecraft:heightmap', 'heightmap': 'WORLD_SURFACE_WG'}, {'type': 'minecraft:biome'}]})
+    for bid, (decor, grass, _) in GARDEN_BIOMES.items():
+        effects = {'fog_color': 15201791, 'sky_color': 10213631, 'water_color': 6280408, 'water_fog_color': 5162935,
+                   'music': {'max_delay': 24000, 'min_delay': 12000, 'replace_current_music': False,
+                             'sound': 'minecraft:music.overworld.meadow' if bid == 'garden_meadow' else 'minecraft:music.overworld.cherry_grove'}}
+        if grass:
+            effects['grass_color'] = grass
+            effects['foliage_color'] = grass
+        features = [[] for _ in range(11)]
+        features[1] = [MODID + ':garden_pond']
+        features[9] = decor
+        write_json(os.path.join(base, 'worldgen', 'biome', bid + '.json'), {
+            'has_precipitation': False, 'temperature': 0.6, 'downfall': 0.5, 'effects': effects,
+            'spawners': {'monster': [], 'creature': [
+                {'type': 'minecraft:rabbit', 'weight': 4, 'minCount': 2, 'maxCount': 3},
+                {'type': 'minecraft:sheep', 'weight': 3, 'minCount': 2, 'maxCount': 4}],
+                'ambient': [], 'axolotls': [], 'underground_water_creature': [], 'water_ambient': [], 'water_creature': [], 'misc': []},
+            'spawn_costs': {}, 'carvers': {}, 'features': features})
+    if vanilla_noise_path and os.path.exists(vanilla_noise_path):
+        # The overworld's terrain, with every ocean basin filled to land (no seas, only ponds and rivers above y 60),
+        # and no aquifers, caves below y 60 or ore veins: a vast, quiet continent. Only regenerated when the vanilla
+        # file is supplied (EDELRAIDS_VANILLA_NOISE); otherwise the committed copy is kept.
+        with open(vanilla_noise_path, encoding='utf-8') as f:
+            ns = json.load(f)
+        ns['noise_router']['final_density'] = {'type': 'minecraft:max', 'argument1': ns['noise_router']['final_density'],
+            'argument2': {'type': 'minecraft:y_clamped_gradient', 'from_y': 56, 'to_y': 64, 'from_value': 1.0, 'to_value': -1.0}}
+        ns['aquifers_enabled'] = False
+        ns['ore_veins_enabled'] = False
+        ns['sea_level'] = 60
+        write_json(os.path.join(base, 'worldgen', 'noise_settings', 'edel_garden.json'), ns)
+
+
+def gate_texture(core, rim):
+    """16x16 gate block: a pale stone frame around a glowing core with a ring and sparkle."""
+    px = canvas(16, 16)
+    rect(px, 0, 0, 16, 16, (226, 228, 222, 255))
+    rect(px, 1, 1, 14, 14, rim)
+    for y in range(2, 14):
+        for x in range(2, 14):
+            d = math.hypot(x - 7.5, y - 7.5)
+            f = max(0.0, 1.0 - d / 7.5)
+            px[y][x] = tuple(min(255, int(core[i] * (0.55 + 0.45 * f) + 255 * 0.35 * f * f)) for i in range(3)) + (255,)
+    for a in range(16):
+        t = a / 16 * 2 * math.pi
+        x, y = int(round(7.5 + math.cos(t) * 4.5)), int(round(7.5 + math.sin(t) * 4.5))
+        px[y][x] = (255, 255, 255, 255)
+    for x, y in ((5, 4), (10, 6), (6, 10), (11, 11)):
+        px[y][x] = (255, 250, 230, 255)
+    return px
+
+
 # ------------------------------------------------------------------ Longsword weapon form (placeholder)
 
 STEEL = (214, 226, 232, 255)
@@ -1219,8 +1461,8 @@ LANG = {
     'item.edelraids.arc_aile_agent_spawn_egg': 'Arc Aile Agent Spawn Egg',
     'item.edelraids.writ_of_passage': 'Writ of Passage',
     'item.edelraids.agent_sigil': "Agent's Sigil",
-    'tooltip.edelraids.writ_of_passage': "Arc Aile's leave to enter Edel Garden, granted in good faith.",
-    'tooltip.edelraids.agent_sigil': 'Taken from a fallen Arc Aile agent. It can force the way into Edel Garden.',
+    'tooltip.edelraids.writ_of_passage': "Arc Aile's leave to enter Edel Garden. Use it on the Garden Gate in one of their fortresses; it is never spent.",
+    'tooltip.edelraids.agent_sigil': "Taken from a fallen Arc Aile agent. Use it on a fortress's Garden Gate to force the way into Edel Garden; it breaks.",
     'message.edelraids.agent_confront_1': 'Arc Aile Agent: "Release her. She deserves a life without fighting."',
     'message.edelraids.agent_confront_2': 'Arc Aile Agent: "You call that a bond? Let us take her somewhere safe."',
     'message.edelraids.agent_confront_3': 'Arc Aile Agent: "Edel Raids are not weapons. Stand aside."',
@@ -1233,6 +1475,13 @@ LANG = {
     'message.edelraids.partner_grieves': '%s will not forgive you. She returns to Edel Garden alone.',
     'message.edelraids.partner_loyal': '%s stays at her partner\'s side. She chose Arc Aile, and him.',
     'message.edelraids.partner_captured': 'The hunters have overpowered an Arc Aile agent and locked his partner %s in a cage.',
+    'block.edelraids.garden_gate': 'Garden Gate',
+    'block.edelraids.return_gate': 'Return Gate',
+    'message.edelraids.gate_sealed': 'The Garden Gate is sealed. A Writ of Passage opens it, or an agent\'s sigil forces it.',
+    'message.edelraids.garden_entered': 'The gate opens, and you step into Edel Garden. Time does not pass here.',
+    'message.edelraids.garden_forced': 'The sigil shatters as the gate is forced open. You step into Edel Garden, uninvited.',
+    'message.edelraids.garden_left': 'You step back through the gate, into the world where time still passes.',
+    'message.edelraids.garden_missing': 'Edel Garden could not be reached (has a datapack removed it?).',
     'message.edelraids.captive_taken': 'Arc Aile has taken %s to Edel Garden.',
     'command.edelraids.standing': 'Your standing with Arc Aile is %s (a truce takes %s).',
     'command.edelraids.standing_truce': 'Your standing with Arc Aile is %s (truce at %s): they will not confront you.',
@@ -1363,6 +1612,13 @@ def main():
                    {'parent': 'minecraft:item/generated', 'textures': {'layer0': MODID + ':item/' + name}})
     write_recipes()
     camp_previews = write_camp()
+    write_fortress()
+    write_garden(os.environ.get('EDELRAIDS_VANILLA_NOISE'))
+    for name, core, rim in (('garden_gate', (110, 180, 240), (46, 74, 122, 255)), ('return_gate', (140, 220, 150), (60, 120, 80, 255))):
+        write_png(os.path.join(ASSETS, 'textures', 'block', name + '.png'), 16, 16, gate_texture(core, rim))
+        write_json(os.path.join(ASSETS, 'blockstates', name + '.json'), {'variants': {'': {'model': MODID + ':block/' + name}}})
+        write_json(os.path.join(ASSETS, 'models', 'block', name + '.json'),
+                   {'parent': 'minecraft:block/cube_all', 'textures': {'all': MODID + ':block/' + name}})
     write_loot()
     write_png(os.path.join(ASSETS, 'textures', 'entity', 'hunter.png'), 64, 64, hunter_texture((92, 70, 54, 255), False))
     write_png(os.path.join(ASSETS, 'textures', 'entity', 'hunter_marksman.png'), 64, 64, hunter_texture((72, 82, 60, 255), True))

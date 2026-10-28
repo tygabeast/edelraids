@@ -44,6 +44,7 @@ import org.jetbrains.annotations.Nullable;
  * /edelraids sting <element> [form] [hostile|freed] - operators: create a Sting Raid (for testing)
  * /edelraids standing [set <value>] - your standing with Arc Aile (setting it: operators)
  * /edelraids patrol           - operators: an Arc Aile patrol appears near you (for testing)
+ * /edelraids garden [return]  - operators: cross to Edel Garden (or back) without the gate (for testing)
  * release and info also work on a freed Sting Raid you look at; releasing one lets her leave.
  */
 public final class EdelCommands {
@@ -76,6 +77,17 @@ public final class EdelCommands {
                                 .then(Commands.argument("value", IntegerArgumentType.integer(-1000, 1000))
                                         .executes(ctx -> setStanding(ctx, IntegerArgumentType.getInteger(ctx, "value"))))))
                 .then(Commands.literal("patrol").requires(s -> s.hasPermission(2)).executes(EdelCommands::patrol))
+                .then(Commands.literal("garden").requires(s -> s.hasPermission(2))
+                        .executes(ctx -> {
+                            ServerPlayer p = ctx.getSource().getPlayerOrException();
+                            if (com.tygabeast.edelraids.garden.GardenTravel.toGarden(p, false)) return 1;
+                            ctx.getSource().sendFailure(Component.translatable("message.edelraids.garden_missing"));
+                            return 0;
+                        })
+                        .then(Commands.literal("return").executes(ctx -> {
+                            com.tygabeast.edelraids.garden.GardenTravel.toWorld(ctx.getSource().getPlayerOrException());
+                            return 1;
+                        })))
                 .then(Commands.literal("bond").requires(s -> s.hasPermission(2))
                         .then(Commands.argument("value", IntegerArgumentType.integer(0))
                                 .executes(ctx -> setBond(ctx, IntegerArgumentType.getInteger(ctx, "value"))))));

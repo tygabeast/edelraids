@@ -31,6 +31,7 @@ public final class EdelRaids {
 
     public EdelRaids(IEventBus modBus, ModContainer container) {
         ModComponents.REGISTER.register(modBus);
+        com.tygabeast.edelraids.registry.ModBlocks.REGISTER.register(modBus);
         ModEntities.REGISTER.register(modBus);
         ModEffects.REGISTER.register(modBus);
         ModItems.REGISTER.register(modBus);

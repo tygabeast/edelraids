@@ -69,9 +69,26 @@ Garden.
 - Freeing a hunter camp's captives also raises your standing a little. At the truce threshold (about five spares)
   Arc Aile's agents stop confronting you, and the agent you spared hands you a Writ of Passage. Killing an agent
   breaks the truce.
-- The Writ of Passage and the Agent's Sigil are the two ways into Edel Garden, which comes in 0.7.0.
+- The Writ of Passage and the Agent's Sigil are the two ways into Edel Garden (see below).
 - `/edelraids standing` shows your standing; operators can set it with `/edelraids standing set <value>` and summon a
   patrol with `/edelraids patrol`.
+
+## Edel Garden and Arc Aile's fortresses
+
+Arc Aile guards the way into Edel Garden from fortresses: rare walled strongholds with corner towers, a gatehouse,
+barracks and, at the centre, the Garden Gate on a pale shrine, all held by posted defenders (agents who never leave
+their post). `/locate structure edelraids:arc_aile_fortress` finds the nearest one.
+
+- Defenders are Arc Aile agents: they confront Pledgers unless you have a truce, yield instead of dying, and can be
+  spared or finished like any agent.
+- Use a **Writ of Passage** on the Garden Gate to enter peacefully; it is never spent. An **Agent's Sigil** forces
+  the gate and breaks. With neither, the gate stays sealed. Companions following you (not sitting, resting or
+  wounded) cross with you.
+- Edel Garden is its own dimension: a vast, quiet land of meadows and cherry groves dotted with ponds, with no seas,
+  caves, ores, rain or monsters. Time does not pass there: it is always day.
+- You arrive at the arrival court; its Return Gate takes you back to where you entered.
+- Sanctuaries, the Edel Raids who live in them, and the Glittering Jewels come in 0.8.0.
+- Operators can cross without the gate with `/edelraids garden` and `/edelraids garden return`.
 
 ## Sting Raids
 
@@ -191,6 +208,13 @@ gradle build              # jar in build/libs
 ```
 
 GeckoLib is a compile-only dependency resolved from its official Maven; it is never bundled.
+
+## 0.7.0 changes
+
+- Arc Aile fortresses: rare overworld strongholds with posted defenders and the Garden Gate.
+- Edel Garden: a new dimension, entered through the Garden Gate with a Writ of Passage (kept) or an Agent's Sigil
+  (spent, a forced entry), left through the Return Gate in its arrival court. Following companions travel with you.
+- The `garden` operator command.
 
 ## 0.6.2 changes
 

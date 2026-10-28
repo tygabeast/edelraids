@@ -75,6 +75,9 @@ public class ArcAileAgentEntity extends PathfinderMob {
     /** Ticks until a yielded agent (and his partner) withdraw; set on yield, shortened by a decision. */
     private int withdrawTicks;
     @Nullable private UUID partnerEntity;
+    /** A fortress defender: holds his post (within 20 blocks of it) and never wanders off or despawns. */
+    private boolean posted;
+    @Nullable private net.minecraft.core.BlockPos post;
     /** The player he yielded to: the one who beat him, or whose companion did. Only they may spare him. */
     @Nullable private UUID victor;
     private boolean staleTargetGoal;
@@ -147,6 +150,7 @@ public class ArcAileAgentEntity extends PathfinderMob {
     public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, MobSpawnType reason, @Nullable SpawnGroupData data) {
         SpawnGroupData result = super.finalizeSpawn(level, difficulty, reason, data);
         if (getMainHandItem().isEmpty()) equipPartner(level.getRandom());
+        if (posted) holdPost();
         return result;
     }
 
@@ -166,6 +170,16 @@ public class ArcAileAgentEntity extends PathfinderMob {
         EdelRaidData d = new EdelRaidData(UUID.randomUUID(), EdelRaidEntity.randomName(random), el.key().location(), form,
                 roll < 5 ? 1 : roll < 9 ? 2 : 3, 20f, 20f, Optional.empty(), 0, false, 0L);
         setItemSlot(EquipmentSlot.MAINHAND, ReactManager.buildWeapon(d, ItemStack.EMPTY, access));
+    }
+
+    private void holdPost() {
+        if (post == null) post = blockPosition();
+        restrictTo(post, 20);
+        setPersistenceRequired();
+    }
+
+    public boolean isPosted() {
+        return posted;
     }
 
     @Nullable
@@ -418,7 +432,7 @@ public class ArcAileAgentEntity extends PathfinderMob {
 
     @Override
     public boolean removeWhenFarAway(double distance) {
-        return !isYielded();
+        return !isYielded() && !posted;
     }
 
     @Override protected SoundEvent getHurtSound(DamageSource source) { return SoundEvents.PLAYER_HURT; }
@@ -430,6 +444,8 @@ public class ArcAileAgentEntity extends PathfinderMob {
         tag.putBoolean("Yielded", isYielded());
         tag.putInt("WithdrawTicks", withdrawTicks);
         if (victor != null) tag.putUUID("Victor", victor);
+        tag.putBoolean("Posted", posted);
+        if (post != null) tag.putLong("Post", post.asLong());
         if (partnerEntity != null) tag.putUUID("PartnerEntity", partnerEntity);
     }
 
@@ -439,6 +455,9 @@ public class ArcAileAgentEntity extends PathfinderMob {
         entityData.set(DATA_YIELDED, tag.getBoolean("Yielded"));
         withdrawTicks = tag.getInt("WithdrawTicks");
         victor = tag.hasUUID("Victor") ? tag.getUUID("Victor") : null;
+        posted = tag.getBoolean("Posted");
+        if (tag.contains("Post")) post = net.minecraft.core.BlockPos.of(tag.getLong("Post"));
+        if (posted && post != null) restrictTo(post, 20);
         partnerEntity = tag.hasUUID("PartnerEntity") ? tag.getUUID("PartnerEntity") : null;
     }
 }
