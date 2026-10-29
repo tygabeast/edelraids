@@ -877,7 +877,10 @@ def write_garden(vanilla_noise_path):
             'barrier': {'type': 'minecraft:simple_state_provider', 'state': {'Name': 'minecraft:grass_block', 'Properties': {'snowy': 'false'}}}}})
     write_json(os.path.join(base, 'worldgen', 'placed_feature', 'garden_pond.json'), {
         'feature': MODID + ':garden_pond', 'placement': [
-            {'type': 'minecraft:rarity_filter', 'chance': 3}, {'type': 'minecraft:in_square'},
+            # No in_square: vanilla's lake reaches 15 blocks east and south of its origin, and its freeze check reads biomes
+            # a few blocks beyond that. From the chunk's corner it stays inside the chunk (and its neighbours' biomes);
+            # from anywhere else it can ask for a chunk two away, which worldgen refuses and crashes the server.
+            {'type': 'minecraft:rarity_filter', 'chance': 3},
             {'type': 'minecraft:heightmap', 'heightmap': 'WORLD_SURFACE_WG'}, {'type': 'minecraft:biome'}]})
     for bid, (decor, grass, _) in GARDEN_BIOMES.items():
         effects = {'fog_color': 15201791, 'sky_color': 10213631, 'water_color': 6280408, 'water_fog_color': 5162935,

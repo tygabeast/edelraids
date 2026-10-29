@@ -209,6 +209,11 @@ gradle build              # jar in build/libs
 
 GeckoLib is a compile-only dependency resolved from its official Maven; it is never bundled.
 
+## 0.7.1 changes
+
+- Fixed a server crash a few seconds after entering Edel Garden: a garden pond placed near a chunk's edge asked for
+  a chunk too far away while generating. Ponds now stay inside their own chunk.
+
 ## 0.7.0 changes
 
 - Arc Aile fortresses: rare overworld strongholds with posted defenders and the Garden Gate.
