@@ -7,6 +7,8 @@ import com.tygabeast.edelraids.bond.ReactManager;
 import com.tygabeast.edelraids.data.EdelRaidData;
 import com.tygabeast.edelraids.data.Element;
 import com.tygabeast.edelraids.data.WeaponForm;
+import com.tygabeast.edelraids.garden.GardenData;
+import com.tygabeast.edelraids.garden.GardenTravel;
 import com.tygabeast.edelraids.item.EdelWeaponItem;
 import com.tygabeast.edelraids.registry.ModEntities;
 import com.tygabeast.edelraids.registry.ModItems;
@@ -82,6 +84,7 @@ public class ArcAileAgentEntity extends PathfinderMob {
     @Nullable private UUID victor;
     private boolean staleTargetGoal;
     @Nullable private UUID lastConfronted;
+    @Nullable private UUID lastWatched;
 
     public ArcAileAgentEntity(EntityType<? extends PathfinderMob> type, Level level) {
         super(type, level);
@@ -127,11 +130,20 @@ public class ArcAileAgentEntity extends PathfinderMob {
         targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, HunterEntity.class, true));
     }
 
-    /** Agents confront Pledgers, unless that player has earned a truce. Runs only when the target goal looks. */
+    /**
+     * Agents confront Pledgers, unless that player has earned a truce. In Edel Garden its wardens keep the peace with
+     * anyone who came in by Writ (they only watch them warily) and turn on anyone who forced the gate with a sigil.
+     * Runs only when the target goal looks.
+     */
     private boolean confronts(ServerPlayer p) {
         if (p.isCreative() || p.isSpectator()) return false;
+        if (inGarden()) return GardenData.get(p.getServer()).forced(p.getUUID());
         if (ArcAileStanding.get(p.getServer()).truce(p.getUUID())) return false;
         return isPledger(p);
+    }
+
+    private boolean inGarden() {
+        return level().dimension() == GardenTravel.GARDEN;
     }
 
     /** Carries one of her own Edel Raids' weapon forms, or has one of them within 32 blocks. */
@@ -202,7 +214,9 @@ public class ArcAileAgentEntity extends PathfinderMob {
         }
         if (target instanceof ServerPlayer sp && !sp.getUUID().equals(lastConfronted)) {
             lastConfronted = sp.getUUID();
-            sp.displayClientMessage(Component.translatable(CONFRONT_LINES[random.nextInt(CONFRONT_LINES.length)]), true);
+            boolean intruder = inGarden() && GardenData.get(sp.getServer()).forced(sp.getUUID());
+            sp.displayClientMessage(Component.translatable(intruder ? "message.edelraids.warden_intruder"
+                    : CONFRONT_LINES[random.nextInt(CONFRONT_LINES.length)]), true);
         }
         super.setTarget(target);
     }
@@ -228,8 +242,21 @@ public class ArcAileAgentEntity extends PathfinderMob {
         }
         // An agent created without the usual spawn setup (a command with data, another mod) gets his partner here.
         if (getMainHandItem().isEmpty()) equipPartner(random);
-        // Rival rescue: once a camp's guards are gone, Arc Aile takes its captives to Edel Garden. Every 2 seconds.
-        if ((tickCount + getId()) % 40 == 0) takeCaptives();
+        if ((tickCount + getId()) % 40 == 0) {
+            if (inGarden()) watchVisitors();
+            // Rival rescue: once a camp's guards are gone, Arc Aile takes its captives to Edel Garden. Every 2 seconds.
+            else takeCaptives();
+        }
+    }
+
+    /** A warden eyes a Writ holder who comes close: once per visitor, so it never becomes chat spam. */
+    private void watchVisitors() {
+        if (getTarget() != null) return;
+        Player near = level().getNearestPlayer(this, 8.0);
+        if (!(near instanceof ServerPlayer sp) || sp.isCreative() || sp.isSpectator() || sp.getUUID().equals(lastWatched)) return;
+        if (GardenData.get(sp.getServer()).forced(sp.getUUID())) return;
+        lastWatched = sp.getUUID();
+        sp.displayClientMessage(Component.translatable("message.edelraids.warden_wary"), true);
     }
 
     private void takeCaptives() {

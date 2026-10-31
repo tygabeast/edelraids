@@ -58,6 +58,10 @@ public final class ModItems {
     public static final DeferredItem<TooltipItem> REFINED_STABILIZER = REGISTER.register("refined_stabilizer",
             () -> new TooltipItem(new Item.Properties().stacksTo(16).rarity(Rarity.UNCOMMON), "tooltip.edelraids.refined_stabilizer"));
 
+    /** Given by a sheltered Edel Raid who agrees to leave Edel Garden with you (sometimes). Not in the creative tab: each belongs to someone. */
+    public static final DeferredItem<com.tygabeast.edelraids.item.KeepsakeItem> KEEPSAKE = REGISTER.register("keepsake",
+            () -> new com.tygabeast.edelraids.item.KeepsakeItem(new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON)));
+
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> TAB = TABS.register("main",
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.edelraids"))

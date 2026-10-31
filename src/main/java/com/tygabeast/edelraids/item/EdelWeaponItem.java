@@ -264,7 +264,15 @@ public class EdelWeaponItem extends Item implements GeoItem {
     public Component getName(ItemStack stack) {
         EdelRaidData d = data(stack);
         if (d == null) return super.getName(stack);
-        return Component.translatable("item.edelraids.edel_weapon.named", d.name(), formName(d.form()));
+        Component name = Component.translatable("item.edelraids.edel_weapon.named", d.name(), formName(d.form()));
+        return d.quality() >= 4 ? name.copy().withStyle(ChatFormatting.GOLD) : name;
+    }
+
+    /** A Glittering Jewel's weapon shimmers (until the art pass gives the Seven their own look). */
+    @Override
+    public boolean isFoil(ItemStack stack) {
+        EdelRaidData d = data(stack);
+        return (d != null && d.quality() >= 4) || super.isFoil(stack);
     }
 
     @Override

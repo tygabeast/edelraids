@@ -1,0 +1,18 @@
+{
+  "structures": [
+    {
+      "structure": "edelraids:jewel_sanctuary",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "spacing": 40,
+    "separation": 14,
+    "salt": 600711823,
+    "exclusion_zone": {
+      "other_set": "edelraids:sanctuary",
+      "chunk_count": 2
+    }
+  }
+}

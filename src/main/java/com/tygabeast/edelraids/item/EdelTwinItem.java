@@ -42,6 +42,13 @@ public class EdelTwinItem extends Item implements GeoItem {
         super(props);
     }
 
+    /** Shimmers like her main weapon when she is a Glittering Jewel. */
+    @Override
+    public boolean isFoil(ItemStack stack) {
+        EdelRaidData d = EdelWeaponItem.data(stack);
+        return (d != null && d.quality() >= 4) || super.isFoil(stack);
+    }
+
     /** A twin made from her weapon: same components (stats, enchantments, Better Combat preset), without durability. */
     public static ItemStack twinOf(ItemStack primary) {
         ItemStack twin = primary.transmuteCopy(ModItems.EDEL_TWIN.get(), 1);

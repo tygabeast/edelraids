@@ -1,0 +1,26 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "edelraids:item/keepsake_letter"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "edelraids:story": 1
+      },
+      "model": "edelraids:item/keepsake_flower"
+    },
+    {
+      "predicate": {
+        "edelraids:story": 2
+      },
+      "model": "edelraids:item/keepsake_drawing"
+    },
+    {
+      "predicate": {
+        "edelraids:story": 3
+      },
+      "model": "edelraids:item/keepsake_ribbon"
+    }
+  ]
+}

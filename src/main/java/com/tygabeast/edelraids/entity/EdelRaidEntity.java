@@ -3,7 +3,11 @@ package com.tygabeast.edelraids.entity;
 import com.tygabeast.edelraids.Config;
 import com.tygabeast.edelraids.EdelRaids;
 import com.tygabeast.edelraids.bond.BondMessages;
+import com.tygabeast.edelraids.bond.ArcAileStanding;
 import com.tygabeast.edelraids.bond.EdelRegistry;
+import com.tygabeast.edelraids.bond.JewelRegistry;
+import com.tygabeast.edelraids.item.KeepsakeItem;
+import com.tygabeast.edelraids.registry.ModItems;
 import com.tygabeast.edelraids.bond.ReactManager;
 import com.tygabeast.edelraids.data.EdelRaidData;
 import com.tygabeast.edelraids.data.Element;
@@ -75,6 +79,8 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
     private static final EntityDataAccessor<Boolean> DATA_WOUNDED = SynchedEntityData.defineId(EdelRaidEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_CAPTIVE = SynchedEntityData.defineId(EdelRaidEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_LOYAL = SynchedEntityData.defineId(EdelRaidEntity.class, EntityDataSerializers.BOOLEAN);
+    /** One of the Seven Glittering Jewels: synced only so clients can draw her apart (until the art pass). */
+    private static final EntityDataAccessor<Boolean> DATA_JEWEL = SynchedEntityData.defineId(EdelRaidEntity.class, EntityDataSerializers.BOOLEAN);
 
     private static final RawAnimation IDLE = RawAnimation.begin().thenLoop("animation.edel_raid.idle");
     private static final RawAnimation WALK = RawAnimation.begin().thenLoop("animation.edel_raid.walk");
@@ -87,6 +93,8 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
     private static final int DEFAULT_COLOR = 0x4FC9A0;
     private static final String[] NAME_HEADS = {"Re", "Ku", "Ti", "Ce", "Li", "Sa", "Ve", "Mi", "Ari", "Ela", "Fio", "Nor"};
     private static final String[] NAME_TAILS = {"n", "ea", "lel", "ra", "lia", "rin", "na", "ssa", "ette", "wyn", "ria", "ne"};
+    private static final int MOOD_UNROLLED = 0, MOOD_CONTENT = 1, MOOD_UNEASY = 2;
+    private static final int SHELTER_RADIUS = 10, GUARDED_RADIUS = 6;
 
     private final AnimatableInstanceCache geoCache = GeckoLibUtil.createInstanceCache(this);
 
@@ -110,6 +118,15 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
     /** Server only: who asked her to React (cleared when React finishes or is cancelled). */
     @Nullable private UUID reactingFor;
     private boolean staleTargetGoal;
+    /** Living in one of Edel Garden's sanctuaries under Arc Aile's care: she stays near home and cannot be harmed. */
+    private boolean sheltered;
+    /** A Jewel sanctuary's: she cannot be talked into leaving while one of its wardens still stands nearby. */
+    private boolean guarded;
+    /** Set by a Jewel sanctuary's template: on her first tick she becomes one of the Seven, if a place is left. */
+    private boolean jewelCandidate;
+    /** Content (refuses to leave) or uneasy (agrees); rolled on her first tick. */
+    private int mood;
+    @Nullable private net.minecraft.core.BlockPos home;
 
     public EdelRaidEntity(EntityType<? extends TamableAnimal> type, Level level) {
         super(type, level);
@@ -133,6 +150,7 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
         builder.define(DATA_WOUNDED, false);
         builder.define(DATA_CAPTIVE, false);
         builder.define(DATA_LOYAL, false);
+        builder.define(DATA_JEWEL, false);
     }
 
     @Override
@@ -161,10 +179,14 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
         return result;
     }
 
-    /** A brand-new Edel Raid: a rollable element, a form from that element's pool, quality tier and a name. */
+    /**
+     * A brand-new Edel Raid: an element, a form from that element's pool, quality tier and a name. Only Edel Garden's
+     * sheltered Edel Raids can be of an element that is not rollable (Ring 4).
+     */
     private void rollIdentity(RandomSource random) {
         Registry<Element> elements = level().registryAccess().registryOrThrow(ModRegistries.ELEMENT);
-        List<Holder.Reference<Element>> pool = elements.holders().filter(h -> h.value().rollable()).toList();
+        List<Holder.Reference<Element>> pool = sheltered ? elements.holders().toList()
+                : elements.holders().filter(h -> h.value().rollable()).toList();
         if (pool.isEmpty()) pool = elements.holders().toList();
         ResourceLocation el = element;
         ResourceLocation fo = form;
@@ -191,7 +213,7 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
         form = newForm;
         quality = Math.max(1, Math.min(10, newQuality));
         edelName = name;
-        setCustomName(Component.literal(edelName));
+        refreshName();
         bond = 0;
         awakened = false;
         stamp = 1L;
@@ -226,10 +248,20 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
             setTame(true, false);
             setOwnerUUID(d.pledger().get());
         }
-        setCustomName(Component.literal(edelName));
+        refreshName();
         setHealth(Math.max(1f, Math.min(d.health(), getMaxHealth())));
         refreshColor();
     }
+
+    /** Her nameplate; a Jewel's is gold. */
+    private void refreshName() {
+        boolean jewel = quality >= JEWEL_QUALITY;
+        entityData.set(DATA_JEWEL, jewel);
+        setCustomName(jewel ? Component.literal(edelName).withStyle(net.minecraft.ChatFormatting.GOLD) : Component.literal(edelName));
+    }
+
+    /** The Jewel tier, above First Class (3). */
+    public static final int JEWEL_QUALITY = 4;
 
     private void refreshColor() {
         Element e = Elements.element(level().registryAccess(), element);
@@ -261,6 +293,10 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
     public boolean isCaptive() { return entityData.get(DATA_CAPTIVE); }
     /** An Arc Aile agent's partner: she stays at his side and leaves with him, or returns to Edel Garden. */
     public boolean isLoyal() { return entityData.get(DATA_LOYAL); }
+    /** One of the Seven Glittering Jewels. */
+    public boolean isJewel() { return entityData.get(DATA_JEWEL); }
+    /** In Arc Aile's care in an Edel Garden sanctuary: out of every fight until she agrees to leave. */
+    public boolean isSheltered() { return sheltered; }
 
     /** Make her an agent's loyal partner who leaves in the given number of ticks (a later call reschedules it). */
     public void setLoyal(int ticks) {
@@ -331,11 +367,18 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
     @Override
     public void tick() {
         super.tick();
-        if (!level().isClientSide && !isRemoved()) serverTick();
+        if (!level().isClientSide) {
+            if (!isRemoved()) serverTick();
+        } else if (isJewel() && random.nextInt(8) == 0 && !isInvisible()) {
+            // A Jewel glitters (a stand-in until the art pass gives the Seven their own look).
+            level().addParticle(net.minecraft.core.particles.ParticleTypes.END_ROD, getRandomX(0.6), getY(0.4 + random.nextDouble() * 0.7),
+                    getRandomZ(0.6), 0.0, 0.01, 0.0);
+        }
     }
 
     private void serverTick() {
         if (edelId == null) rollIdentity(random);
+        if (sheltered && (home == null || mood == MOOD_UNROLLED || jewelCandidate)) settleIn();
         if (staleTargetGoal || (getTarget() != null && refusesTarget(getTarget()))) {
             staleTargetGoal = false;
             StingRaidEntity.stopTargetGoals(this, targetSelector);
@@ -392,6 +435,91 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
         }
     }
 
+    // ---------------------------------------------------------------- Edel Garden: sheltered Edel Raids and the Jewels
+
+    /**
+     * First tick in her sanctuary (always on the server thread, unlike worldgen): her home, her mood and, for a Jewel
+     * sanctuary's candidate, her place among the Seven.
+     */
+    private void settleIn() {
+        if (home == null) home = blockPosition();
+        restrictTo(home, guarded ? GUARDED_RADIUS : SHELTER_RADIUS);
+        if (mood == MOOD_UNROLLED) mood = random.nextDouble() < Config.UNEASY_CHANCE.get() ? MOOD_UNEASY : MOOD_CONTENT;
+        if (jewelCandidate) {
+            jewelCandidate = false;
+            becomeJewel();
+        }
+    }
+
+    /** One of the Seven if a place is left (her own element and name), else a First Class Edel Raid. */
+    private void becomeJewel() {
+        if (!(level() instanceof ServerLevel sl)) return;
+        JewelRegistry jewels = JewelRegistry.get(sl.getServer());
+        Registry<Element> elements = sl.registryAccess().registryOrThrow(ModRegistries.ELEMENT);
+        ResourceLocation el = element;
+        ResourceLocation fo = form;
+        String name = edelName;
+        int q;
+        if (jewels.full()) {
+            q = Math.max(3, quality);
+        } else {
+            q = JEWEL_QUALITY;
+            java.util.Set<ResourceLocation> used = jewels.usedElements();
+            List<Holder.Reference<Element>> free = elements.holders().filter(h -> !used.contains(h.key().location())).toList();
+            if (!free.isEmpty()) {
+                Holder.Reference<Element> picked = free.get(random.nextInt(free.size()));
+                el = picked.key().location();
+                List<ResourceLocation> forms = picked.value().forms();
+                if (!forms.isEmpty()) fo = forms.get(random.nextInt(forms.size()));
+            }
+            for (int i = 0; i < 32 && jewels.nameTaken(name); i++) name = randomName(random);
+        }
+        if (edelId != null) EdelRegistry.get(sl.getServer()).remove(edelId);
+        setIdentity(el, fo, q, name);
+        if (q == JEWEL_QUALITY) {
+            int place = jewels.claim(edelId, name, el);
+            EdelRaids.debug("{} became Glittering Jewel {} of {}", name, place, JewelRegistry.LIMIT);
+        }
+    }
+
+    /** An unbeaten warden of her sanctuary within 24 blocks. */
+    private boolean wardensNear() {
+        return !level().getEntitiesOfClass(ArcAileAgentEntity.class, getBoundingBox().inflate(24.0), a -> a.isAlive() && !a.isYielded()).isEmpty();
+    }
+
+    /** Asking a sheltered Edel Raid to leave: content ones refuse; uneasy ones agree, at a cost to your standing. */
+    private InteractionResult persuade(ServerPlayer sp) {
+        if (guarded && wardensNear()) {
+            sp.displayClientMessage(Component.translatable("message.edelraids.sheltered_guarded", edelName), true);
+            return InteractionResult.CONSUME;
+        }
+        if (mood == MOOD_UNROLLED) mood = random.nextDouble() < Config.UNEASY_CHANCE.get() ? MOOD_UNEASY : MOOD_CONTENT;
+        if (mood != MOOD_UNEASY) {
+            sp.displayClientMessage(Component.translatable("message.edelraids.sheltered_content_" + (1 + random.nextInt(3)), edelName), false);
+            return InteractionResult.CONSUME;
+        }
+        sheltered = false;
+        guarded = false;
+        home = null;
+        clearRestriction();
+        lingerTicks = Config.FREED_LINGER_TICKS.get();
+        ArcAileStanding st = ArcAileStanding.get(sp.getServer());
+        boolean hadTruce = st.truce(sp.getUUID());
+        st.add(sp.getUUID(), -Config.ARC_AILE_PERSUADE.get());
+        playSound(net.minecraft.sounds.SoundEvents.AMETHYST_BLOCK_CHIME, 1.0f, 1.0f);
+        sp.displayClientMessage(Component.translatable("message.edelraids.sheltered_agrees", edelName), false);
+        if (hadTruce && !st.truce(sp.getUUID())) {
+            sp.displayClientMessage(Component.translatable("message.edelraids.arc_aile_truce_broken"), false);
+        }
+        if (random.nextDouble() < Config.KEEPSAKE_CHANCE.get()) {
+            ItemStack keepsake = KeepsakeItem.create(ModItems.KEEPSAKE.get(), edelName, random.nextInt(KeepsakeItem.STORIES));
+            if (!sp.getInventory().add(keepsake)) sp.drop(keepsake, false);
+            sp.displayClientMessage(Component.translatable("message.edelraids.sheltered_keepsake", edelName), false);
+        }
+        EdelRaids.debug("{} agreed to leave Edel Garden with {}", edelName, sp.getGameProfile().getName());
+        return InteractionResult.SUCCESS;
+    }
+
     /** A freed captive nobody bonded thanks her rescuer and goes her own way. */
     private void leave() {
         if (level() instanceof ServerLevel sl) {
@@ -430,6 +558,7 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
             sp.displayClientMessage(Component.translatable("message.edelraids.partner_loyal", edelName), true);
             return InteractionResult.CONSUME;
         }
+        if (isSheltered()) return persuade(sp);
         if (isCaptive()) {
             if (StingRaidEntity.guardsNear(this)) {
                 sp.displayClientMessage(Component.translatable("message.edelraids.captive_guarded", edelName), true);
@@ -500,7 +629,7 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
     @Override
     public boolean isInvulnerableTo(DamageSource source) {
         if (source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) return super.isInvulnerableTo(source);
-        return isBusy() || isCaptive() || isLoyal() || super.isInvulnerableTo(source);
+        return isBusy() || isCaptive() || isLoyal() || sheltered || super.isInvulnerableTo(source);
     }
 
     /** No permadeath: lethal damage leaves her wounded. Only /kill truly removes her; the void sends her home. */
@@ -550,6 +679,11 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
         tag.putInt("LingerTicks", lingerTicks);
         tag.putBoolean("Loyal", isLoyal());
         tag.putInt("LoyalTicks", loyalTicks);
+        tag.putBoolean("Sheltered", sheltered);
+        tag.putBoolean("Guarded", guarded);
+        tag.putBoolean("JewelCandidate", jewelCandidate);
+        tag.putInt("Mood", mood);
+        if (home != null) tag.putLong("Home", home.asLong());
         if (!storedWeapon.isEmpty()) tag.put("Weapon", storedWeapon.save(registryAccess()));
     }
 
@@ -573,6 +707,13 @@ public class EdelRaidEntity extends TamableAnimal implements GeoEntity, Elementa
         lingerTicks = tag.getInt("LingerTicks");
         entityData.set(DATA_LOYAL, tag.getBoolean("Loyal"));
         loyalTicks = tag.getInt("LoyalTicks");
+        sheltered = tag.getBoolean("Sheltered");
+        guarded = tag.getBoolean("Guarded");
+        jewelCandidate = tag.getBoolean("JewelCandidate");
+        mood = tag.getInt("Mood");
+        home = tag.contains("Home") ? net.minecraft.core.BlockPos.of(tag.getLong("Home")) : null;
+        if (sheltered && home != null) restrictTo(home, guarded ? GUARDED_RADIUS : SHELTER_RADIUS);
+        entityData.set(DATA_JEWEL, quality >= JEWEL_QUALITY);
         storedWeapon = tag.contains("Weapon") ? ItemStack.parse(registryAccess(), tag.get("Weapon")).orElse(ItemStack.EMPTY) : ItemStack.EMPTY;
         refreshColor();
     }

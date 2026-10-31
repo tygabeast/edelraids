@@ -286,7 +286,7 @@ public class StingRaidEntity extends TamableAnimal implements GeoEntity, Element
      */
     public static boolean isOutOfFight(LivingEntity e) {
         return (e instanceof StingRaidEntity s && s.isSubdued())
-                || (e instanceof EdelRaidEntity r && (r.isBusy() || r.isCaptive() || r.isLoyal()))
+                || (e instanceof EdelRaidEntity r && (r.isBusy() || r.isCaptive() || r.isLoyal() || r.isSheltered()))
                 || (e instanceof ArcAileAgentEntity a && a.isYielded());
     }
 

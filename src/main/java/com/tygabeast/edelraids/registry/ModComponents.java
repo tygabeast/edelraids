@@ -25,5 +25,10 @@ public final class ModComponents {
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<Unit>> PAIRED =
             REGISTER.registerComponentType("paired", b -> b.persistent(Unit.CODEC).networkSynchronized(StreamCodec.unit(Unit.INSTANCE)));
 
+    /** Whose keepsake this is and which one (see KeepsakeItem). */
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<com.tygabeast.edelraids.item.KeepsakeItem.Keepsake>> KEEPSAKE =
+            REGISTER.registerComponentType("keepsake", b -> b.persistent(com.tygabeast.edelraids.item.KeepsakeItem.Keepsake.CODEC)
+                    .networkSynchronized(com.tygabeast.edelraids.item.KeepsakeItem.Keepsake.STREAM_CODEC));
+
     private ModComponents() {}
 }

@@ -846,6 +846,362 @@ def write_fortress():
                {'replace': False, 'values': FORTRESS_BIOMES})
 
 
+# ------------------------------------------------------------------ Edel Garden sanctuaries (0.8.0)
+#
+# Templates are laid with their ground (grass) at y 2, so the pond can be dug two blocks deep into layers 0 and 1;
+# the structure starts two blocks down (start_height -2) so that ground meets the terrain like a camp's floor does.
+
+SANCT_GROUND = 2
+FLOWERS = ['minecraft:allium', 'minecraft:azure_bluet', 'minecraft:oxeye_daisy', 'minecraft:cornflower',
+           'minecraft:lily_of_the_valley', 'minecraft:pink_tulip', 'minecraft:white_tulip']
+NO_WATER = {'waterlogged': 'false'}
+
+
+def _lantern(hanging=False):
+    return ('minecraft:lantern', {'hanging': 'true' if hanging else 'false', 'waterlogged': 'false'})
+
+
+def sanct_base(b, w, d, h, ground='minecraft:grass_block'):
+    """Foundation, ground at SANCT_GROUND and air above (clears trees and terrain inside the footprint)."""
+    for x in range(w):
+        for z in range(d):
+            for y in range(SANCT_GROUND):
+                put_block(b, x, y, z, 'minecraft:dirt')
+            put_block(b, x, SANCT_GROUND, z, ground, {'snowy': 'false'} if ground == 'minecraft:grass_block' else {})
+            for y in range(SANCT_GROUND + 1, h):
+                put_block(b, x, y, z, 'minecraft:air')
+
+
+def sanct_pond(b, cx, cz, rx, rz, island=0.0, lilies=True):
+    """An oval pond (two deep in the middle, sand beneath) centred on (cx, cz); island > 0 leaves dry ground at its
+    centre with that radius. Returns the water cells."""
+    g = SANCT_GROUND
+    cells = []
+    for x in range(int(cx - rx) - 1, int(cx + rx) + 2):
+        for z in range(int(cz - rz) - 1, int(cz + rz) + 2):
+            e = ((x - cx) / rx) ** 2 + ((z - cz) / rz) ** 2
+            r = math.hypot(x - cx, z - cz)
+            if e > 1.0 or (island and r <= island):
+                continue
+            deep = e < 0.45 and not (island and r <= island + 1.2)
+            put_block(b, x, g, z, 'minecraft:water', {'level': '0'})
+            put_block(b, x, g - 1, z, 'minecraft:water' if deep else 'minecraft:sand', {'level': '0'} if deep else {})
+            put_block(b, x, g - 2, z, 'minecraft:sand' if deep else 'minecraft:dirt')
+            cells.append((x, z))
+            if lilies and ((x * 7 + z * 13) % 11 == 0) and e > 0.3:
+                put_block(b, x, g + 1, z, 'minecraft:lily_pad')
+    return cells
+
+
+def sanct_flowers(b, w, d, keep_out, density=9):
+    """Flowers scattered on open grass, never on paths, water or anything built (cells in keep_out)."""
+    g = SANCT_GROUND
+    for x in range(1, w - 1):
+        for z in range(1, d - 1):
+            if (x, z) in keep_out or b.get((x, g, z), ('',))[0] != 'minecraft:grass_block':
+                continue
+            if b.get((x, g + 1, z), ('minecraft:air',))[0] != 'minecraft:air':
+                continue
+            h = (x * 73856093 ^ z * 19349663) & 0xffff
+            if h % density == 0:
+                put_block(b, x, g + 1, z, FLOWERS[(h >> 4) % len(FLOWERS)])
+            elif h % density == 1:
+                put_block(b, x, g + 1, z, 'minecraft:short_grass')
+
+
+def sanct_path(b, cells, block='minecraft:smooth_quartz'):
+    for x, z in cells:
+        put_block(b, x, SANCT_GROUND, z, block)
+
+
+def sanct_pavilion(b, x0, z0, size=5, roof='minecraft:quartz_slab', height=3):
+    """A pale open pavilion: paved floor, corner pillars, a slab roof and a hanging lantern."""
+    g = SANCT_GROUND
+    for x in range(x0, x0 + size):
+        for z in range(z0, z0 + size):
+            put_block(b, x, g, z, 'minecraft:smooth_quartz')
+            put_block(b, x, g + height + 1, z, roof, {'type': 'bottom', 'waterlogged': 'false'})
+    for x, z in ((x0, z0), (x0 + size - 1, z0), (x0, z0 + size - 1), (x0 + size - 1, z0 + size - 1)):
+        for y in range(g + 1, g + height + 1):
+            put_block(b, x, y, z, 'minecraft:quartz_pillar', {'axis': 'y'})
+    c = size // 2
+    put_block(b, x0 + c, g + height, z0 + c, *_lantern(hanging=True))
+    # two benches facing each other
+    for x in (x0 + 1, x0 + size - 2):
+        put_block(b, x, g + 1, z0 + c, 'minecraft:birch_stairs',
+                  {'facing': 'east' if x == x0 + 1 else 'west', 'half': 'bottom', 'shape': 'straight', 'waterlogged': 'false'})
+
+
+def sanct_cottage(b, x0, z0, door_side='north'):
+    """A small birch cottage (5x5), its door toward the pond, a bed and a flower pot inside."""
+    g = SANCT_GROUND
+    for x in range(x0, x0 + 5):
+        for z in range(z0, z0 + 5):
+            edge = x in (x0, x0 + 4) or z in (z0, z0 + 4)
+            corner = x in (x0, x0 + 4) and z in (z0, z0 + 4)
+            put_block(b, x, g, z, 'minecraft:birch_planks')
+            for y in range(g + 1, g + 4):
+                if edge:
+                    window = y == g + 2 and not corner and (x == x0 + 2 or z == z0 + 2)
+                    put_block(b, x, y, z, 'minecraft:stripped_birch_log' if corner else
+                              'minecraft:glass_pane' if window else 'minecraft:birch_planks',
+                              {'axis': 'y'} if corner else ({'north': 'false', 'south': 'false', 'east': 'false', 'west': 'false', 'waterlogged': 'false'} if window else {}))
+            put_block(b, x, g + 4, z, 'minecraft:birch_slab', {'type': 'bottom', 'waterlogged': 'false'})
+    # glass panes join along the wall they sit in
+    for (x, y, z), (blk, props, nbt) in list(b.items()):
+        if blk == 'minecraft:glass_pane' and x0 <= x <= x0 + 4 and z0 <= z <= z0 + 4:
+            along_x = z in (z0, z0 + 4)
+            b[(x, y, z)] = (blk, {'north': 'false' if along_x else 'true', 'south': 'false' if along_x else 'true',
+                                  'east': 'true' if along_x else 'false', 'west': 'true' if along_x else 'false',
+                                  'waterlogged': 'false'}, nbt)
+    dz = z0 if door_side == 'north' else z0 + 4
+    for half, y in (('lower', g + 1), ('upper', g + 2)):
+        put_block(b, x0 + 2, y, dz, 'minecraft:birch_door',
+                  {'facing': door_side, 'half': half, 'hinge': 'left', 'open': 'false', 'powered': 'false'})
+    inner = z0 + 3 if door_side == 'north' else z0 + 1
+    head_z = inner
+    foot_z = inner - 1 if door_side == 'north' else inner + 1
+    bed_facing = 'south' if door_side == 'north' else 'north'
+    put_block(b, x0 + 1, g + 1, head_z, 'minecraft:white_bed', {'facing': bed_facing, 'part': 'head', 'occupied': 'false'})
+    put_block(b, x0 + 1, g + 1, foot_z, 'minecraft:white_bed', {'facing': bed_facing, 'part': 'foot', 'occupied': 'false'})
+    put_block(b, x0 + 3, g + 1, inner, 'minecraft:potted_azure_bluet')
+
+
+def sanct_hedge(b, w, d, gaps):
+    """A low flowering hedge around the edge, open at the given gap cells."""
+    g = SANCT_GROUND
+    for i in range(w):
+        for (x, z) in ((i, 0), (i, d - 1)):
+            if (x, z) not in gaps:
+                put_block(b, x, g + 1, z, 'minecraft:flowering_azalea_leaves' if (x + z) % 3 == 0 else 'minecraft:azalea_leaves',
+                          {'distance': '1', 'persistent': 'true', 'waterlogged': 'false'})
+    for i in range(d):
+        for (x, z) in ((0, i), (w - 1, i)):
+            if (x, z) not in gaps:
+                put_block(b, x, g + 1, z, 'minecraft:flowering_azalea_leaves' if (x + z) % 3 == 0 else 'minecraft:azalea_leaves',
+                          {'distance': '1', 'persistent': 'true', 'waterlogged': 'false'})
+
+
+def sanct_post(b, x, z):
+    g = SANCT_GROUND
+    put_block(b, x, g + 1, z, 'minecraft:birch_fence', {'east': 'false', 'west': 'false', 'north': 'false', 'south': 'false', 'waterlogged': 'false'})
+    put_block(b, x, g + 2, z, *_lantern())
+
+
+def sheltered(x, z, **extra):
+    nbt = {'id': S(MODID + ':edel_raid'), 'Sheltered': B(1), 'PersistenceRequired': B(1)}
+    nbt.update({k: B(1) for k, v in extra.items() if v})
+    return ((x, SANCT_GROUND + 1.0, z), nbt)
+
+
+def warden(x, z):
+    return ((x, SANCT_GROUND + 1.0, z), {'id': S(MODID + ':arc_aile_agent'), 'Posted': B(1), 'PersistenceRequired': B(1)})
+
+
+GROVE = 25
+
+
+def grove_sanctuary():
+    """The usual sanctuary: a hedge-ringed lawn with a pond at its heart, a pavilion, two cottages and pale paths."""
+    b = {}
+    w = d = GROVE
+    c = w // 2
+    sanct_base(b, w, d, 9)
+    gaps = {(c - 1, 0), (c, 0), (c + 1, 0), (c - 1, d - 1), (c, d - 1), (c + 1, d - 1)}
+    sanct_hedge(b, w, d, gaps)
+    pond = sanct_pond(b, c, c + 1, 5.5, 4.2)
+    path = set()
+    for z in range(0, d):
+        for x in (c - 1, c, c + 1):
+            path.add((x, z))
+    ring = set()
+    for x in range(w):
+        for z in range(d):
+            e = ((x - c) / 7.2) ** 2 + ((z - c - 1) / 5.9) ** 2
+            if 0.78 < e <= 1.0:
+                ring.add((x, z))
+    sanct_path(b, [p for p in (path | ring) if p not in pond])
+    sanct_pavilion(b, c - 2, 2)
+    sanct_cottage(b, 2, 17, 'north')
+    sanct_cottage(b, w - 7, 17, 'north')
+    for x, z in ((c - 2, 1), (c + 2, 1), (c - 2, d - 2), (c + 2, d - 2), (3, 8), (w - 4, 8)):
+        sanct_post(b, x, z)
+    keep = set(path) | ring | set(pond)
+    sanct_flowers(b, w, d, keep)
+    ents = [sheltered(c + 0.5, 4.5), sheltered(4.5, 15.5), sheltered(w - 4.5, 15.5), sheltered(5.5, 7.5),
+            warden(c + 0.5, 0.5), warden(c + 0.5, d - 1.5)]
+    return b, ents, (w, 9, d)
+
+
+GLADE = 17
+
+
+def glade_sanctuary():
+    """A smaller sanctuary: a pond under a pavilion's eye, ringed by flowers, with one warden."""
+    b = {}
+    w = d = GLADE
+    c = w // 2
+    sanct_base(b, w, d, 9)
+    gaps = {(c - 1, d - 1), (c, d - 1), (c + 1, d - 1)}
+    sanct_hedge(b, w, d, gaps)
+    pond = sanct_pond(b, c, c + 2, 4.2, 3.2)
+    path = {(x, z) for z in range(c + 5, d) for x in (c - 1, c, c + 1)} | {(c, z) for z in range(6, c + 5)}
+    sanct_path(b, [p for p in path if p not in pond])
+    sanct_pavilion(b, c - 2, 1)
+    for x, z in ((2, 2), (w - 3, 2), (c - 2, d - 2), (c + 2, d - 2)):
+        sanct_post(b, x, z)
+    sanct_flowers(b, w, d, path | set(pond), density=6)
+    ents = [sheltered(c + 0.5, 3.5), sheltered(3.5, c + 1.5), sheltered(w - 3.5, c + 1.5), warden(c + 0.5, d - 2.5)]
+    return b, ents, (w, 9, d)
+
+
+JEWEL_W = 33
+JEWEL_H = 16
+JEWEL_WALL = 8
+
+
+def jewel_sanctuary():
+    """Where Arc Aile keeps one of the Seven: high pale walls with barred windows, watchtowers, a single barred gate,
+    and inside, the Jewel on an island pavilion in a wide pond, reached by one bridge. More wardens than anywhere else."""
+    b = {}
+    w = d = JEWEL_W
+    n = w - 1
+    c = w // 2
+    g = SANCT_GROUND
+    top = g + JEWEL_WALL
+    sanct_base(b, w, d, JEWEL_H)
+
+    def wall_block(x, y, z):
+        if y == g + 1:
+            return 'minecraft:stone_bricks'
+        return 'minecraft:quartz_bricks' if (x + z) % 6 else 'minecraft:chiseled_quartz_block'
+
+    bars = {}
+    for i in range(w):
+        for (x, z) in ((i, 0), (i, n), (0, i), (n, i)):
+            for y in range(g + 1, top + 1):
+                window = y in (top - 2, top - 3) and i % 4 == 2 and 3 < i < n - 3
+                if window:
+                    bars[(x, y, z)] = (x, z)
+                    put_block(b, x, y, z, 'minecraft:iron_bars')
+                else:
+                    put_block(b, x, y, z, wall_block(x, y, z))
+            if i % 2 == 0:
+                put_block(b, x, top + 1, z, 'minecraft:quartz_bricks')
+    # quartz pilasters every 8 blocks, on the inside face
+    for i in range(4, n, 8):
+        for (x, z) in ((i, 1), (i, n - 1), (1, i), (n - 1, i)):
+            for y in range(g + 1, top):
+                put_block(b, x, y, z, 'minecraft:quartz_pillar', {'axis': 'y'})
+    # watchtowers 5x5 at the corners, taller than the wall, with a lantern on top
+    th = top + 4
+    for cx, cz in ((2, 2), (n - 2, 2), (2, n - 2), (n - 2, n - 2)):
+        for x in range(cx - 2, cx + 3):
+            for z in range(cz - 2, cz + 3):
+                for y in range(g + 1, th + 1):
+                    put_block(b, x, y, z, wall_block(x, y, z))
+                if (x + z) % 2 == 0 and (x in (cx - 2, cx + 2) or z in (cz - 2, cz + 2)):
+                    put_block(b, x, th + 1, z, 'minecraft:quartz_bricks')
+        put_block(b, cx, th + 1, cz, *_lantern())
+    # the only way in: a barred gatehouse in the south wall, 3 wide and 4 tall, iron bars across its top
+    for x in range(c - 3, c + 4):
+        for y in range(g + 1, top + 3):
+            for z in (n - 1, n):
+                put_block(b, x, y, z, wall_block(x, y, z))
+    for x in range(c - 1, c + 2):
+        for y in range(g + 1, g + 5):
+            for z in (n - 1, n):
+                put_block(b, x, y, z, 'minecraft:air')
+        for z in (n - 1, n):
+            put_block(b, x, g + 5, z, 'minecraft:iron_bars')
+            bars[(x, g + 5, z)] = (x, z)
+    for x in (c - 2, c + 2):
+        put_block(b, x, g + 4, n + 0, *_lantern())
+        put_block(b, x, g + 6, n + 0, 'minecraft:blue_wall_banner', {'facing': 'south'})
+    # the wide pond, the island and its domed pavilion, and the one bridge
+    pond = sanct_pond(b, c, c, 9.5, 9.5, island=3.6, lilies=True)
+    island = [(x, z) for x in range(w) for z in range(d) if math.hypot(x - c, z - c) <= 3.6]
+    sanct_path(b, island)
+    for x, z in ((c - 2, c - 2), (c + 2, c - 2), (c - 2, c + 2), (c + 2, c + 2)):
+        for y in range(g + 1, g + 5):
+            put_block(b, x, y, z, 'minecraft:quartz_pillar', {'axis': 'y'})
+    for x in range(c - 2, c + 3):
+        for z in range(c - 2, c + 3):
+            put_block(b, x, g + 5, z, 'minecraft:quartz_block')
+    for x in range(c - 1, c + 2):
+        for z in range(c - 1, c + 2):
+            put_block(b, x, g + 6, z, 'minecraft:quartz_slab', {'type': 'bottom', 'waterlogged': 'false'})
+    put_block(b, c, g + 4, c, *_lantern(hanging=True))
+    bridge = [(x, z) for x in range(c - 1, c + 2) for z in range(c + 3, n - 1)]
+    for x, z in bridge:
+        if (x, z) in pond:
+            put_block(b, x, g, z, 'minecraft:smooth_quartz')
+            put_block(b, x, g + 1, z, 'minecraft:air')
+        else:
+            put_block(b, x, g, z, 'minecraft:smooth_quartz')
+    for z in range(c + 4, n - 2, 3):
+        for x in (c - 2, c + 2):
+            if (x, z) in pond:
+                put_block(b, x, g, z, 'minecraft:quartz_block')
+            sanct_post(b, x, z)
+    # garden beds between the wall and the pond, lantern posts in the corners of the court
+    for x, z in ((6, 6), (n - 6, 6), (6, n - 6), (n - 6, n - 6)):
+        sanct_post(b, x, z)
+    keep = set(pond) | set(island) | set(bridge)
+    sanct_flowers(b, w, d, keep, density=5)
+    # iron bars join to the wall either side of them
+    for (x, y, z) in list(bars):
+        if b[(x, y, z)][0] != 'minecraft:iron_bars':
+            continue  # a window the gatehouse later walled over
+        along_x = z in (0, n, n - 1)
+        b[(x, y, z)] = ('minecraft:iron_bars', {'north': 'false' if along_x else 'true', 'south': 'false' if along_x else 'true',
+                                                'east': 'true' if along_x else 'false', 'west': 'true' if along_x else 'false',
+                                                'waterlogged': 'false'}, None)
+    ents = [sheltered(c + 0.5, c + 0.5, Guarded=True, JewelCandidate=True),
+            sheltered(c + 0.5, c - 1.5, Guarded=True),
+            warden(c - 0.5, n + 0.5 - 2), warden(c + 1.5, n + 0.5 - 2), warden(c + 0.5, c + 4.5),
+            warden(c + 0.5, 4.5), warden(5.5, c + 0.5), warden(n - 4.5, c + 0.5)]
+    return b, ents, (w, JEWEL_H, d)
+
+
+SANCTUARY_VARIANTS = {'grove': (grove_sanctuary, 3), 'glade': (glade_sanctuary, 2)}
+
+
+def write_sanctuaries():
+    base = os.path.join(DATA, MODID)
+    previews = {}
+    for name, fn in [('grove', grove_sanctuary), ('glade', glade_sanctuary), ('jewel', jewel_sanctuary)]:
+        blocks, ents, size = fn()
+        write_nbt(os.path.join(base, 'structure', 'sanctuary', name + '.nbt'), template_from(blocks, ents, size))
+        previews[name] = {'blocks': [[x, y, z, bl] for (x, y, z), (bl, _, _) in blocks.items() if bl != 'minecraft:air'],
+                          'entities': [[p[0], p[1], p[2], 'jewel' if 'JewelCandidate' in nbt else nbt['id'].value] for p, nbt in ents]}
+    pools = {'sanctuary': [(MODID + ':sanctuary/' + n, wt) for n, (_, wt) in SANCTUARY_VARIANTS.items()],
+             'jewel_sanctuary': [(MODID + ':sanctuary/jewel', 1)]}
+    for pool, elements in pools.items():
+        write_json(os.path.join(base, 'worldgen', 'template_pool', pool, 'start.json'), {
+            'fallback': 'minecraft:empty',
+            'elements': [{'weight': wt, 'element': {'element_type': 'minecraft:single_pool_element', 'location': loc,
+                                                     'projection': 'rigid', 'processors': 'minecraft:empty'}}
+                         for loc, wt in elements]})
+        write_json(os.path.join(base, 'worldgen', 'structure', pool + '.json'), {
+            'type': 'minecraft:jigsaw', 'biomes': '#' + MODID + ':has_structure/sanctuary',
+            'step': 'surface_structures', 'spawn_overrides': {}, 'terrain_adaptation': 'beard_thin',
+            'start_pool': MODID + ':' + pool + '/start', 'size': 1, 'start_height': {'absolute': -SANCT_GROUND},
+            'project_start_to_heightmap': 'WORLD_SURFACE_WG', 'max_distance_from_center': 80, 'use_expansion_hack': False})
+    # Sanctuaries are everywhere in the Garden (about one per 12 chunks square); Jewel sanctuaries are rare, and kept
+    # apart from the ordinary ones. Only seven Jewels can ever exist: later Jewel sanctuaries hold First Class Edel Raids.
+    write_json(os.path.join(base, 'worldgen', 'structure_set', 'sanctuary.json'), {
+        'structures': [{'structure': MODID + ':sanctuary', 'weight': 1}],
+        'placement': {'type': 'minecraft:random_spread', 'spacing': 12, 'separation': 4, 'salt': 1203984417}})
+    write_json(os.path.join(base, 'worldgen', 'structure_set', 'jewel_sanctuary.json'), {
+        'structures': [{'structure': MODID + ':jewel_sanctuary', 'weight': 1}],
+        'placement': {'type': 'minecraft:random_spread', 'spacing': 40, 'separation': 14, 'salt': 600711823,
+                      'exclusion_zone': {'other_set': MODID + ':sanctuary', 'chunk_count': 2}}})
+    write_json(os.path.join(base, 'tags', 'worldgen', 'biome', 'has_structure', 'sanctuary.json'),
+               {'replace': False, 'values': [MODID + ':' + bid for bid in GARDEN_BIOMES]})
+    return previews
+
+
 GARDEN_BIOMES = {
     # id: (vanilla features for flowers and trees, grass colour or None, temperature range)
     'garden_meadow': (['minecraft:patch_tall_grass_2', 'minecraft:patch_grass_plain', 'minecraft:flower_meadow', 'minecraft:trees_meadow'], None, [-1.0, 0.0]),
@@ -911,6 +1267,68 @@ def write_garden(vanilla_noise_path):
         ns['ore_veins_enabled'] = False
         ns['sea_level'] = 60
         write_json(os.path.join(base, 'worldgen', 'noise_settings', 'edel_garden.json'), ns)
+
+
+KEEPSAKES = ['letter', 'flower', 'drawing', 'ribbon']
+PAPER = (232, 220, 188, 255)
+PAPER_EDGE = (196, 178, 140, 255)
+INK = (92, 80, 70, 255)
+
+
+def _paper(px, x0=3, y0=2, w=10, h=12):
+    rect(px, x0, y0, w, h, PAPER)
+    for x in range(x0, x0 + w):
+        px[y0][x] = PAPER_EDGE
+        px[y0 + h - 1][x] = PAPER_EDGE
+    for y in range(y0, y0 + h):
+        px[y][x0] = PAPER_EDGE
+        px[y][x0 + w - 1] = PAPER_EDGE
+
+
+def keepsake_texture(kind):
+    """16x16 keepsake icons: a sealed letter, a pressed flower, a child's drawing, a ribbon tied in a bow."""
+    px = canvas(16, 16)
+    if kind == 'letter':
+        rect(px, 2, 4, 12, 9, PAPER)
+        for x in range(2, 14):
+            px[4][x] = PAPER_EDGE; px[12][x] = PAPER_EDGE
+        for y in range(4, 13):
+            px[y][2] = PAPER_EDGE; px[y][13] = PAPER_EDGE
+        for i in range(6):  # the envelope's flap
+            px[5 + i // 2][3 + i] = PAPER_EDGE; px[5 + i // 2][12 - i] = PAPER_EDGE
+        rect(px, 7, 7, 2, 2, (168, 40, 48, 255))  # wax seal
+    elif kind == 'flower':
+        _paper(px)
+        stem = (88, 128, 70, 255)
+        for y in range(7, 12):
+            px[y][8] = stem
+        px[9][7] = stem; px[10][9] = stem
+        petal = (226, 140, 176, 255)
+        for dx, dy in ((0, -1), (-1, 0), (1, 0), (0, 1), (-1, -1), (1, 1)):
+            px[5 + dy][8 + dx] = petal
+        px[5][8] = (240, 214, 96, 255)
+    elif kind == 'drawing':
+        _paper(px)
+        red, blue = (204, 70, 64, 255), (70, 110, 196, 255)
+        # a sun in the corner, a girl with long hair and a dress
+        px[4][11] = (236, 196, 64, 255); px[4][10] = (236, 196, 64, 255); px[3][11] = (236, 196, 64, 255)
+        rect(px, 6, 4, 3, 2, INK)          # hair
+        px[6][6] = INK; px[7][6] = INK; px[6][8] = INK; px[7][8] = INK
+        rect(px, 6, 8, 3, 3, blue)          # dress
+        px[11][6] = INK; px[11][8] = INK    # legs
+        px[5][7] = (120, 200, 170, 255)     # her gem, drawn in green
+        for x in range(4, 12, 2):
+            px[13][x] = red                 # a line of scribbled letters: her name
+    else:  # ribbon
+        rib, dark = (70, 110, 196, 255), (46, 74, 140, 255)
+        for i in range(4):
+            px[6 - i // 2][4 + i] = rib; px[7 + i // 2][4 + i] = rib
+            px[6 - i // 2][11 - i] = rib; px[7 + i // 2][11 - i] = rib
+        rect(px, 3, 5, 2, 4, rib); rect(px, 11, 5, 2, 4, rib)
+        rect(px, 7, 6, 2, 2, dark)
+        for i in range(5):
+            px[8 + i][6 - i // 2] = dark; px[8 + i][9 + i // 2] = dark
+    return px
 
 
 def gate_texture(core, rim):
@@ -1525,6 +1943,30 @@ LANG = {
     'command.edelraids.sting_info': '%s: %s Sting Raid, %s, strain %s, %s, %s. Active: %s of %s (%s freed in all).',
     'command.edelraids.sting_created': 'Created %s: %s Sting Raid with an %s, freed by you.',
     'command.edelraids.sting_created_hostile': "Created %s: a hunter's %s Sting Raid with an %s.",
+    'edelraids.quality.4': 'Glittering Jewel',
+    'message.edelraids.warden_wary': 'An Arc Aile warden watches you closely. Your Writ lets you walk here; nothing more.',
+    'message.edelraids.warden_intruder': 'Arc Aile Warden: "You broke the gate to get in. You will not leave with anyone."',
+    'message.edelraids.sheltered_content_1': '%s: "Leave? Out there, everyone grows old and goes away. Here nothing ever changes."',
+    'message.edelraids.sheltered_content_2': '%s: "I\'m happy here. Please don\'t ask me again."',
+    'message.edelraids.sheltered_content_3': '%s: "The wardens keep us safe. No one fights over us here."',
+    'message.edelraids.sheltered_agrees': '%s hesitates, then nods. "How long has it been, out there? Take me with you." Right-click her again to become her Pledger, or she will leave in a few minutes. Arc Aile will not forget this.',
+    'message.edelraids.sheltered_keepsake': '%s presses something into your hands: a keepsake from before she came here.',
+    'message.edelraids.sheltered_guarded': 'The wardens will not let %s near you. None of them may still be standing.',
+    'command.edelraids.jewels': 'Glittering Jewels in this world: %s of %s.',
+    'command.edelraids.jewel_entry': '  %s, of %s',
+    'item.edelraids.keepsake': 'Keepsake',
+    'item.edelraids.keepsake.0': 'Faded Letter',
+    'item.edelraids.keepsake.1': 'Pressed Flower',
+    'item.edelraids.keepsake.2': "Child's Drawing",
+    'item.edelraids.keepsake.3': 'Blue Ribbon',
+    'tooltip.edelraids.keepsake.0.1': 'A letter to %s from a friend, promising to visit once the harvest was in.',
+    'tooltip.edelraids.keepsake.0.2': 'The paper is yellow and brittle. To %s, it arrived last spring.',
+    'tooltip.edelraids.keepsake.1.1': 'A flower from the village where %s grew up, pressed between two pages.',
+    'tooltip.edelraids.keepsake.1.2': 'She asked what the village looks like now. No one could tell her.',
+    'tooltip.edelraids.keepsake.2.1': 'A child\'s drawing of %s, her name spelled out in careful letters.',
+    'tooltip.edelraids.keepsake.2.2': 'The girl who drew it would be very old now, if she is still alive.',
+    'tooltip.edelraids.keepsake.3.1': 'A ribbon her first Pledger tied in %s\'s hair.',
+    'tooltip.edelraids.keepsake.3.2': 'He promised to come for her. She waited here, unaging, for longer than he lived.',
 }
 # Labels for NeoForge's config screen (tooltips fall back to the comments in the config classes).
 CONFIG_LANG = {
@@ -1554,7 +1996,8 @@ CONFIG_LANG = {
     'subduedEscapeTicks': 'Escape Time (ticks)', 'stingDamageScale': 'Sting Raid Damage Scale',
     'arc_aile': 'Arc Aile', 'standingPerSpare': 'Standing per Spare', 'standingLostPerKill': 'Standing Lost per Kill',
     'standingPerCaptive': 'Standing per Freed Captive', 'truceStanding': 'Truce Standing', 'yieldTicks': 'Yield Time (ticks)',
-    'patrolChancePerMinute': 'Patrol Chance per Minute',
+    'patrolChancePerMinute': 'Patrol Chance per Minute', 'standingLostPerPersuade': 'Standing Lost per Persuasion',
+    'edel_garden': 'Edel Garden', 'uneasyChance': 'Uneasy Chance', 'keepsakeChance': 'Keepsake Chance',
     'technical': 'Technical', 'validateIntervalTicks': 'Validation Interval (ticks)', 'debug': 'Debug Logging',
 }
 for _k, _v in CONFIG_LANG.items():
@@ -1630,9 +2073,19 @@ def main():
         write_png(os.path.join(ASSETS, 'textures', 'item', name + '.png'), 16, 16, fn())
         write_json(os.path.join(ASSETS, 'models', 'item', name + '.json'),
                    {'parent': 'minecraft:item/generated', 'textures': {'layer0': MODID + ':item/' + name}})
+    sanctuary_previews = write_sanctuaries()
+    for i, kind in enumerate(KEEPSAKES):
+        write_png(os.path.join(ASSETS, 'textures', 'item', 'keepsake_' + kind + '.png'), 16, 16, keepsake_texture(kind))
+        write_json(os.path.join(ASSETS, 'models', 'item', 'keepsake_' + kind + '.json'),
+                   {'parent': 'minecraft:item/generated', 'textures': {'layer0': MODID + ':item/keepsake_' + kind}})
+    # One item; edelraids:story (0-3, see ClientSetup) picks the picture.
+    write_json(os.path.join(ASSETS, 'models', 'item', 'keepsake.json'), {
+        'parent': 'minecraft:item/generated', 'textures': {'layer0': MODID + ':item/keepsake_' + KEEPSAKES[0]},
+        'overrides': [{'predicate': {MODID + ':story': i}, 'model': MODID + ':item/keepsake_' + k} for i, k in enumerate(KEEPSAKES) if i]})
     preview_dir = os.environ.get('EDELRAIDS_PREVIEW_DIR')
     if preview_dir:  # layout data for an optional preview render; never written into the project
         write_json(os.path.join(preview_dir, 'camps.json'), camp_previews)
+        write_json(os.path.join(preview_dir, 'sanctuaries.json'), sanctuary_previews)
 
     write_png(os.path.join(ASSETS, 'textures', 'item', 'weapon', 'longsword.png'), 32, 32, longsword_texture())
     write_json(os.path.join(ASSETS, 'geo', 'item', 'weapon', 'longsword.geo.json'), longsword_geo())

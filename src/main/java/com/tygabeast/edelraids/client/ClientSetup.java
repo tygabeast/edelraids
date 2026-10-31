@@ -41,6 +41,11 @@ public final class ClientSetup {
             };
             ItemProperties.register(ModItems.EDEL_WEAPON.get(), EdelRaids.id("form"), form);
             ItemProperties.register(ModItems.EDEL_TWIN.get(), EdelRaids.id("form"), form);
+            // edelraids:story picks the keepsake's picture (letter, flower, drawing, ribbon).
+            ItemProperties.register(ModItems.KEEPSAKE.get(), EdelRaids.id("story"), (stack, level, entity, seed) -> {
+                var k = stack.get(com.tygabeast.edelraids.registry.ModComponents.KEEPSAKE.get());
+                return k == null ? 0f : k.story();
+            });
         });
     }
 

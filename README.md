@@ -87,8 +87,38 @@ their post). `/locate structure edelraids:arc_aile_fortress` finds the nearest o
 - Edel Garden is its own dimension: a vast, quiet land of meadows and cherry groves dotted with ponds, with no seas,
   caves, ores, rain or monsters. Time does not pass there: it is always day.
 - You arrive at the arrival court; its Return Gate takes you back to where you entered.
-- Sanctuaries, the Edel Raids who live in them, and the Glittering Jewels come in 0.8.0.
-- Operators can cross without the gate with `/edelraids garden` and `/edelraids garden return`.
+- Operators can cross without the gate with `/edelraids garden` (as if by Writ), `/edelraids garden forced` (as if by
+  sigil) and `/edelraids garden return`.
+
+### Sanctuaries and sheltered Edel Raids
+
+Edel Garden is dotted with sanctuaries, each built around a pond: hedge-ringed lawns with a pavilion and cottages
+(groves), or smaller glades. `/locate structure edelraids:sanctuary` finds the nearest one.
+
+- The Edel Raids who live there are **sheltered**: in Arc Aile's care, unaging, and out of every fight (nothing can
+  harm them, and no song or companion targets them). They are the only Edel Raids who can be of a **Ring 4** element.
+- Right-click one to ask her to leave with you. A **content** one refuses. An **uneasy** one agrees: right-click her
+  again to become her Pledger, or she leaves in a few minutes. Each one you talk into leaving costs standing with Arc
+  Aile (2 by default), which can break a truce.
+- Sometimes she gives you a **keepsake** from before she came to the Garden: a letter, a pressed flower, a child's
+  drawing or a ribbon, each with a little of what the years outside have taken from her.
+- Sanctuaries are kept by Arc Aile **wardens**. If you came in with a Writ they leave you be and only watch you
+  warily; if you forced the gate with a sigil they attack you on sight. Wardens are agents: they yield, and can be
+  spared or finished, as anywhere else.
+
+### The Seven Glittering Jewels
+
+Rarely, a far stronger sanctuary stands in the Garden: high pale walls with barred windows, watchtowers and a single
+barred gate, and inside, a pond around an island pavilion reached by one bridge. Arc Aile keeps one of the **Seven
+Glittering Jewels** there, under many wardens. `/locate structure edelraids:jewel_sanctuary` finds the nearest.
+
+- A Jewel is a tier above First Class. Each has her own element and name, a gold nameplate, a faint glitter, and a
+  shimmering weapon (until the art pass gives the Seven their own look), and she knows all three songs from the start.
+- Only seven can ever exist in a world. Once all seven have appeared, later Jewel sanctuaries hold a First Class Edel
+  Raid instead, even if a Jewel is later lost.
+- A Jewel and her attendant cannot be talked into leaving while any warden still stands within 24 blocks of them.
+  Like anyone sheltered, a Jewel may be content and refuse.
+- Operators can list the Jewels of a world with `/edelraids jewels`.
 
 ## Sting Raids
 
@@ -208,6 +238,17 @@ gradle build              # jar in build/libs
 ```
 
 GeckoLib is a compile-only dependency resolved from its official Maven; it is never bundled.
+
+## 0.8.0 changes
+
+- Edel Garden sanctuaries (groves and glades, always with a pond) with sheltered Edel Raids, Ring 4 among them.
+- Talking a sheltered Edel Raid into leaving: content ones refuse, uneasy ones agree, at a cost in standing.
+- Keepsakes: four kinds, each telling of the time that passed outside the Garden.
+- Wardens: wary but peaceful toward Writ holders, hostile to anyone who forced the gate.
+- The Seven Glittering Jewels: a Jewel tier above First Class, only seven per world, kept in walled Jewel
+  sanctuaries; all three songs known from the start.
+- New config: `arc_aile.standingLostPerPersuade`, `edel_garden.uneasyChance`, `edel_garden.keepsakeChance`.
+- New operator commands: `/edelraids garden forced`, `/edelraids jewels`.
 
 ## 0.7.1 changes
 

@@ -47,8 +47,9 @@ public final class Songs {
         indexedRegistry = reg;
     }
 
-    /** Bond needed for a slot; the full song (slot 3) needs her weapon awakened. */
+    /** Bond needed for a slot; the full song (slot 3) needs her weapon awakened. Jewels need neither. */
     public static boolean unlocked(EdelRaidData d, int slot) {
+        if (d.quality() >= 4) return true; // a Glittering Jewel knows all three songs from the start
         return switch (slot) {
             case 1 -> d.bond() >= Config.SONG_BOND_1.get();
             case 2 -> d.bond() >= Config.SONG_BOND_2.get();

@@ -44,7 +44,8 @@ import org.jetbrains.annotations.Nullable;
  * /edelraids sting <element> [form] [hostile|freed] - operators: create a Sting Raid (for testing)
  * /edelraids standing [set <value>] - your standing with Arc Aile (setting it: operators)
  * /edelraids patrol           - operators: an Arc Aile patrol appears near you (for testing)
- * /edelraids garden [return]  - operators: cross to Edel Garden (or back) without the gate (for testing)
+ * /edelraids garden [forced|return] - operators: cross to Edel Garden (as if by Writ, or by sigil) or back, without the gate (for testing)
+ * /edelraids jewels           - operators: which of the Seven Glittering Jewels exist in this world
  * release and info also work on a freed Sting Raid you look at; releasing one lets her leave.
  */
 public final class EdelCommands {
@@ -84,10 +85,17 @@ public final class EdelCommands {
                             ctx.getSource().sendFailure(Component.translatable("message.edelraids.garden_missing"));
                             return 0;
                         })
+                        .then(Commands.literal("forced").executes(ctx -> {
+                            ServerPlayer p = ctx.getSource().getPlayerOrException();
+                            if (com.tygabeast.edelraids.garden.GardenTravel.toGarden(p, true)) return 1;
+                            ctx.getSource().sendFailure(Component.translatable("message.edelraids.garden_missing"));
+                            return 0;
+                        }))
                         .then(Commands.literal("return").executes(ctx -> {
                             com.tygabeast.edelraids.garden.GardenTravel.toWorld(ctx.getSource().getPlayerOrException());
                             return 1;
                         })))
+                .then(Commands.literal("jewels").requires(s -> s.hasPermission(2)).executes(EdelCommands::jewels))
                 .then(Commands.literal("bond").requires(s -> s.hasPermission(2))
                         .then(Commands.argument("value", IntegerArgumentType.integer(0))
                                 .executes(ctx -> setBond(ctx, IntegerArgumentType.getInteger(ctx, "value"))))));
@@ -281,6 +289,17 @@ public final class EdelCommands {
         ctx.getSource().sendSuccess(() -> Component.translatable(hostile ? "command.edelraids.sting_created_hostile" : "command.edelraids.sting_created",
                 e.getStingName(), EdelWeaponItem.elementName(elementId), Component.translatable("edelraids.sting_arm." + e.getArm().id())), true);
         return 1;
+    }
+
+    private static int jewels(CommandContext<CommandSourceStack> ctx) {
+        var reg = com.tygabeast.edelraids.bond.JewelRegistry.get(ctx.getSource().getServer());
+        ctx.getSource().sendSuccess(() -> Component.translatable("command.edelraids.jewels", reg.jewels().size(),
+                com.tygabeast.edelraids.bond.JewelRegistry.LIMIT), false);
+        for (var j : reg.jewels()) {
+            ctx.getSource().sendSuccess(() -> Component.translatable("command.edelraids.jewel_entry", j.name(),
+                    com.tygabeast.edelraids.item.EdelWeaponItem.elementName(j.element())), false);
+        }
+        return reg.jewels().size();
     }
 
     private static int standing(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {

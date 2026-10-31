@@ -108,6 +108,16 @@ public final class Config {
     public static final ModConfigSpec.DoubleValue ARC_AILE_PATROL_CHANCE = B
             .comment("Chance per player per minute (in the Overworld) that an Arc Aile patrol of 1 or 2 agents appears nearby, if none is already within 96 blocks. 0 disables patrols.")
             .defineInRange("patrolChancePerMinute", 0.05, 0.0, 1.0);
+    public static final ModConfigSpec.IntValue ARC_AILE_PERSUADE = B
+            .comment("Standing with Arc Aile lost each time you talk a sheltered Edel Raid into leaving Edel Garden.")
+            .defineInRange("standingLostPerPersuade", 2, 0, 100);
+    static { B.pop().push("edel_garden"); }
+    public static final ModConfigSpec.DoubleValue UNEASY_CHANCE = B
+            .comment("Chance that a sheltered Edel Raid in a sanctuary is uneasy (willing to leave with you) rather than content.")
+            .defineInRange("uneasyChance", 0.35, 0.0, 1.0);
+    public static final ModConfigSpec.DoubleValue KEEPSAKE_CHANCE = B
+            .comment("Chance that a sheltered Edel Raid who agrees to leave gives you a keepsake from before she entered Edel Garden.")
+            .defineInRange("keepsakeChance", 0.35, 0.0, 1.0);
     static { B.pop().push("balance"); }
     public static final ModConfigSpec.DoubleValue QUALITY_DAMAGE = B
             .comment("Flat attack damage added per quality tier above the first. Placeholder until tiers are designed.")
